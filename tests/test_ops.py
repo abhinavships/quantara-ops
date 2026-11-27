@@ -283,3 +283,13 @@ def test_condense_path_prefix_is_stripped_and_signature_is_prefix_free(env):
     sig = hmac.new(env.sess["tech"]["session_key"].encode(), Auth.signing_string("POST", "/api/feedback", ts, n, raw).encode(), hashlib.sha256).hexdigest()
     r = env.c.post(pre + "/api/feedback", content=raw, headers={**env.hdr("tech"), "x-timestamp": str(ts), "x-nonce": n, "x-signature": sig})
     assert r.status_code == 200
+
+
+def test_parse_users_accepts_json_base64_and_rejects_garbage():
+    import base64
+    from ops.auth import parse_users
+    j = json.dumps(USERS)
+    assert parse_users(j) == USERS and parse_users(" " + j + "\n") == USERS and parse_users("'" + j + "'") == USERS
+    assert parse_users(base64.b64encode(j.encode()).decode()) == USERS
+    for bad in ("", "{}", "nope", "[1]", '{"a": 1}'):
+        with pytest.raises(ValueError, match="OPS_USERS"): parse_users(bad)

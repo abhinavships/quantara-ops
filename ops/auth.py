@@ -15,6 +15,19 @@ ROLES = {"viewer": {"read"}, "technician": {"read", "feedback", "inject"}, "owne
 SKEW_S, NONCE_TTL_S, JWT_TTL_S = 60, 180, 900
 
 
+def parse_users(raw):
+    """OPS_USERS is JSON, or base64 of that JSON (survives clipboard/quoting damage). Fails with a clear, value-free message."""
+    import base64
+    raw = (raw or "").strip().strip("'\"")
+    for attempt in (lambda: json.loads(raw), lambda: json.loads(base64.b64decode(raw, validate=True))):
+        try:
+            u = attempt()
+            if isinstance(u, dict) and u and all(isinstance(v, dict) and {"salt", "hash", "role"} <= v.keys() for v in u.values()): return u
+        except Exception:
+            pass
+    raise ValueError(f"OPS_USERS is not valid users JSON or base64 of it (received {len(raw)} chars)")
+
+
 class AuthError(Exception):
     def __init__(self, status, why): self.status, self.why = status, why
 
@@ -34,7 +47,8 @@ class Auth:
         self.nonces, self.lock = OrderedDict(), threading.Lock()
 
     @classmethod
-    def from_env(cls): return cls(os.environ.get("OPS_JWT_SECRET", ""), json.loads(os.environ.get("OPS_USERS", "{}")))
+    def from_env(cls):
+        return cls(os.environ.get("OPS_JWT_SECRET", "").strip(), parse_users(os.environ.get("OPS_USERS", "")))
 
     def login(self, user, pw):
         u = self.users.get(user)
