@@ -1,0 +1,270 @@
+{
+ "uid": "quantara-ops",
+ "title": "Quantara: edge-first fleet protection",
+ "schemaVersion": 39,
+ "version": 1,
+ "refresh": "10s",
+ "time": {
+  "from": "now-1h",
+  "to": "now"
+ },
+ "tags": [
+  "quantara",
+  "synthetic"
+ ],
+ "panels": [
+  {
+   "id": 1,
+   "title": "Edge-resolved vs escalated (fleet totals)",
+   "type": "timeseries",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 0,
+    "w": 12,
+    "h": 7
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "format": "time_series",
+     "rawQuery": true,
+     "editorMode": "code",
+     "rawSql": "SELECT to_timestamp(ts) AS time, (payload->'edge_counters'->>'edge_resolved')::float AS edge_resolved, (payload->'edge_counters'->>'escalated')::float AS escalated FROM events WHERE topic='cloud.fleet' AND kind='feeds' AND $__timeFilter(to_timestamp(ts)) ORDER BY ts"
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "title": "Bytes saved by edge summarisation",
+   "type": "timeseries",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 12,
+    "y": 0,
+    "w": 12,
+    "h": 7
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "format": "time_series",
+     "rawQuery": true,
+     "editorMode": "code",
+     "rawSql": "SELECT to_timestamp(ts) AS time, (payload->'edge_counters'->>'bytes_saved')::float AS bytes_saved, (payload->'edge_counters'->>'bytes_sent')::float AS bytes_sent FROM events WHERE topic='cloud.fleet' AND kind='feeds' AND $__timeFilter(to_timestamp(ts)) ORDER BY ts"
+    }
+   ]
+  },
+  {
+   "id": 3,
+   "title": "Incidents by edge cause",
+   "type": "barchart",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 7,
+    "w": 8,
+    "h": 7
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "format": "table",
+     "rawQuery": true,
+     "editorMode": "code",
+     "rawSql": "SELECT payload->'incident'->>'cause' AS cause, count(*) AS n FROM events WHERE topic IN ('cloud.escalations','cloud.security') AND $__timeFilter(to_timestamp(ts)) GROUP BY 1 ORDER BY 2 DESC"
+    }
+   ]
+  },
+  {
+   "id": 4,
+   "title": "Why the edge escalated",
+   "type": "barchart",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 8,
+    "y": 7,
+    "w": 8,
+    "h": 7
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "format": "table",
+     "rawQuery": true,
+     "editorMode": "code",
+     "rawSql": "SELECT r AS reason, count(*) AS n FROM events, jsonb_array_elements_text(payload->'reasons') r WHERE topic IN ('cloud.escalations','cloud.security') AND $__timeFilter(to_timestamp(ts)) GROUP BY 1 ORDER BY 2 DESC"
+    }
+   ]
+  },
+  {
+   "id": 5,
+   "title": "Cloud verdict (twin) by final cause",
+   "type": "piechart",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 16,
+    "y": 7,
+    "w": 8,
+    "h": 7
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "format": "table",
+     "rawQuery": true,
+     "editorMode": "code",
+     "rawSql": "SELECT payload->>'final_cause' AS cause, count(*) AS n FROM events WHERE topic='cloud.twin' AND $__timeFilter(to_timestamp(ts)) GROUP BY 1 ORDER BY 2 DESC"
+    }
+   ]
+  },
+  {
+   "id": 6,
+   "title": "Signed commands issued / refused",
+   "type": "timeseries",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 14,
+    "w": 12,
+    "h": 7
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "format": "time_series",
+     "rawQuery": true,
+     "editorMode": "code",
+     "rawSql": "SELECT date_trunc('minute', to_timestamp(ts)) AS time, count(*) FILTER (WHERE topic='commands.out') AS issued, count(*) FILTER (WHERE topic='notify.out' AND kind='refused') AS refused FROM events WHERE $__timeFilter(to_timestamp(ts)) GROUP BY 1 ORDER BY 1"
+    }
+   ]
+  },
+  {
+   "id": 7,
+   "title": "Rollouts: applied vs failed (latest status per rollout)",
+   "type": "table",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 12,
+    "y": 14,
+    "w": 12,
+    "h": 7
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "format": "table",
+     "rawQuery": true,
+     "editorMode": "code",
+     "rawSql": "SELECT DISTINCT ON (payload->>'id') payload->>'id' AS rollout, payload->>'status' AS status, (payload->>'pct')::int AS pct, (payload->>'applied')::int AS applied, (payload->>'failed')::int AS failed, (payload->>'skipped_no_consent')::int AS skipped FROM events WHERE kind='rollout_status' ORDER BY payload->>'id', id DESC"
+    }
+   ]
+  },
+  {
+   "id": 8,
+   "title": "Data quality: DLQ and quarantine",
+   "type": "timeseries",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 21,
+    "w": 12,
+    "h": 7
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "format": "time_series",
+     "rawQuery": true,
+     "editorMode": "code",
+     "rawSql": "SELECT date_trunc('minute', to_timestamp(ts)) AS time, count(*) FILTER (WHERE topic='dlq') AS dlq, count(*) FILTER (WHERE topic='quarantine') AS quarantine FROM events WHERE $__timeFilter(to_timestamp(ts)) GROUP BY 1 ORDER BY 1"
+    }
+   ]
+  },
+  {
+   "id": 9,
+   "title": "Audit trail (latest 20)",
+   "type": "table",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 12,
+    "y": 21,
+    "w": 12,
+    "h": 7
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "format": "table",
+     "rawQuery": true,
+     "editorMode": "code",
+     "rawSql": "SELECT to_timestamp(ts) AS time, seq, actor, action, detail FROM audit ORDER BY seq DESC LIMIT 20"
+    }
+   ]
+  }
+ ],
+ "description": "All data is synthetic. Requires the ops store on Postgres (DATABASE_URL)."
+}

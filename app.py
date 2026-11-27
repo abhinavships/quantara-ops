@@ -1,0 +1,39 @@
+"""Condense output-connector entrypoint. ROLE=all (default: sink thread + gateway), sink, or gateway.
+Split sink/gateway only makes sense with a shared Postgres (DATABASE_URL); SQLite is per-pod."""
+import logging
+import os
+import sys
+import threading
+
+import uvicorn
+
+from quantara_core import config, topics
+from quantara_core.bus import get_bus
+from ops.auth import Auth
+from ops.gateway import create_app
+from ops.sink import Sink
+from ops.store import Store
+
+logging.basicConfig(stream=sys.stdout, level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
+log = logging.getLogger("ops")
+
+
+def main():
+    role = os.environ.get("ROLE", "all")
+    redis = None
+    if os.environ.get("REDIS_URL"):
+        import redis as _r
+        redis = _r.from_url(os.environ["REDIS_URL"])
+    store, bus = Store(os.environ.get("DATABASE_URL"), redis), get_bus()
+    log.info("topics: %s", {k: v for k, v in topics.ensure_topics().items() if v != "exists"} or "all exist")
+    log.info("role=%s store=%s redis=%s", role, "postgres" if store.pg else "sqlite", bool(redis))
+    if role in ("all", "sink"):
+        threading.Thread(target=Sink(store, bus).run, daemon=True).start()
+    if role in ("all", "gateway"):
+        uvicorn.run(create_app(store, bus, Auth.from_env()), host="0.0.0.0", port=int(os.environ.get("PORT", "8080")), log_level="info")
+    else:
+        threading.Event().wait()
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,6 @@
+quantara-core @ git+https://github.com/abhinavships/quantara-core@v0.3.0
+fastapi
+uvicorn[standard]
+pyjwt
+psycopg[binary]
+redis

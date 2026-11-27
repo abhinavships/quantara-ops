@@ -1,0 +1,6 @@
+apiVersion: 1
+providers:
+  - name: quantara
+    folder: Quantara
+    type: file
+    options: {path: /var/lib/grafana/dashboards}

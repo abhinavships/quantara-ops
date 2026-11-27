@@ -1,0 +1,49 @@
+<!doctype html><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1">
+<title>Quantara ops</title>
+<style>
+:root{--bg:#0f1419;--p:#1a212b;--t:#e6edf3;--m:#8b98a5;--a:#3b82f6;--ok:#22c55e;--w:#f59e0b;--bad:#ef4444}
+*{box-sizing:border-box}body{margin:0;font:14px system-ui,sans-serif;background:var(--bg);color:var(--t)}
+header{display:flex;gap:12px;align-items:center;padding:10px 16px;background:var(--p);border-bottom:1px solid #2b3542}
+header b{font-size:16px}nav button{background:none;border:0;color:var(--m);padding:8px 12px;cursor:pointer;font:inherit}
+nav button.on{color:var(--t);border-bottom:2px solid var(--a)}main{padding:16px;max-width:1100px;margin:auto}
+.card{background:var(--p);border:1px solid #2b3542;border-radius:8px;padding:12px;margin:0 0 12px}
+table{width:100%;border-collapse:collapse}td,th{padding:6px 8px;border-bottom:1px solid #2b3542;text-align:left;vertical-align:top}
+th{color:var(--m);font-weight:500}input,select,button.act{background:#0f1419;color:var(--t);border:1px solid #2b3542;border-radius:6px;padding:6px 8px;font:inherit}
+button.act{background:var(--a);border:0;cursor:pointer}.tag{padding:1px 6px;border-radius:10px;background:#2b3542;font-size:12px}
+.sec{background:#5b1d1d}.ok{color:var(--ok)}.bad{color:var(--bad)}.m{color:var(--m)}#toast{position:fixed;bottom:16px;right:16px}
+</style>
+<header><b>Quantara</b><nav id=nav></nav><span style="flex:1"></span><span id=who class=m></span></header>
+<main id=main></main><div id=toast class=card hidden></div>
+<script>
+let S=null,tab='fleet',ws=null;const $=s=>document.querySelector(s);
+const toast=(t,bad)=>{const e=$('#toast');e.textContent=t;e.className='card '+(bad?'bad':'ok');e.hidden=false;setTimeout(()=>e.hidden=true,3500)};
+const hex=b=>[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');
+async function hmac(key,msg){const k=await crypto.subtle.importKey('raw',new TextEncoder().encode(key),{name:'HMAC',hash:'SHA-256'},false,['sign']);return hex(await crypto.subtle.sign('HMAC',k,new TextEncoder().encode(msg)))}
+async function sha(s){return hex(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s)))}
+async function api(path,method='GET',body){
+  const h={authorization:'Bearer '+S.token};let b;
+  if(method!=='GET'){b=JSON.stringify(body||{});const ts=Math.floor(Date.now()/1000),n=crypto.randomUUID().replace(/-/g,'');
+    h['x-timestamp']=ts;h['x-nonce']=n;h['x-signature']=await hmac(S.session_key,[method,path,ts,n,await sha(b)].join('\n'));h['content-type']='application/json'}
+  const r=await fetch(path,{method,headers:h,body:b});const j=await r.json().catch(()=>({}));
+  if(!r.ok){toast((j.error||r.status),1);throw j}return j}
+async function login(){const r=await fetch('/login',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({username:$('#u').value,password:$('#p').value})});
+  const j=await r.json();if(!r.ok)return toast(j.error,1);S=j;const me=await api('/api/me');$('#who').textContent=me.user+' ('+me.role+')'+(me.sandbox?' · SANDBOX':'');S.me=me;start()}
+function start(){const T=['fleet','incidents','actions','audit'];$('#nav').innerHTML=T.map(t=>`<button class="${t==tab?'on':''}" onclick="tab='${t}';start()">${t}</button>`).join('');render();
+  if(!ws){ws=new WebSocket((location.protocol=='https:'?'wss://':'ws://')+location.host+'/ws');ws.onopen=()=>ws.send(JSON.stringify({token:S.token}));ws.onmessage=()=>{clearTimeout(window._t);window._t=setTimeout(render,400)}}}
+const esc=s=>String(s??'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+async function render(){const m=$('#main');
+ if(tab=='fleet'){const x=await api('/api/metrics'),e=x.edge||{};m.innerHTML=`<div class=card><table><tr><th>edge-resolved<th>escalated<th>resolved ratio<th>bytes saved<th>incidents<th>commands<th>DLQ<th>quarantine</tr><tr><td>${e.edge_resolved??'-'}<td>${e.escalated??'-'}<td>${e.resolved_ratio==null?'-':(100*e.resolved_ratio).toFixed(1)+'%'}<td>${e.bytes_saved??'-'}<td>${x.incidents}<td>${x.commands}<td>${x.dlq}<td>${x.quarantine}</tr></table></div>
+ <div class="card m">Everything shown is simulated (SANDBOX). Counters are fleet-wide edge totals from the ingest app.</div>`}
+ if(tab=='incidents'){const l=await api('/api/incidents');m.innerHTML='<div class=card><table><tr><th>incident<th>vehicle<th>edge cause<th>cloud cause<th>power cap<th>why escalated<th>route<th>feedback</tr>'+l.map(i=>`<tr><td>${esc(i.id)} ${i.security?'<span class="tag sec">security</span>':''}<td>${esc(i.vehicle_id)}<td>${esc(i.edge_cause)}<td>${esc(i.final_cause||i.rca_top||'…')}<td>${esc(i.recommended_cap??'')}<td>${esc((i.reasons||[]).join(', '))}<td>${esc(i.route?i.route.station+' '+i.route.distance_km+'km':'')}<td><input size=14 id="f${esc(i.id)}" placeholder="confirmed cause"><button class=act onclick="fb('${esc(i.id)}')">send</button></tr>`).join('')+'</table></div>'}
+ if(tab=='actions'){const [p,pr,ro]=await Promise.all([api('/api/pending'),api('/api/proposals'),api('/api/rollouts')]);
+  m.innerHTML=`<div class=card><h3>Consent requests</h3>${p.map(r=>`<div>${esc(r.vehicle_id)}: ${esc(r.text)} <button class=act onclick="cons('${esc(r.request_id)}','approved')">approve</button> <button class=act onclick="cons('${esc(r.request_id)}','denied')">deny</button></div>`).join('')||'<span class=m>none</span>'}</div>
+  <div class=card><h3>Proposed rulebook changes (learning loop)</h3>${pr.map(r=>`<div>v${r.version}: ${esc(r.rationale)} <button class=act onclick="rb(${r.event_id})">approve &amp; start staged rollout</button></div>`).join('')||'<span class=m>none yet</span>'}</div>
+  <div class=card><h3>Rollouts</h3>${ro.map(r=>`<div>${esc(r.id)} · ${esc(r.status)} · stage ${r.stage} (${r.pct}%) · applied ${r.applied} failed ${r.failed} skipped ${r.skipped_no_consent}</div>`).join('')||'<span class=m>none</span>'}</div>
+  <div class=card><h3>Inject scenario (sandbox)</h3><select id=sc>${['breakdown','grid_outage','degradation','cyber_flood','cyber_spoof','cal_tamper','telemetry_mismatch','clear'].map(s=>`<option>${s}</option>`).join('')}</select> <input id=vs placeholder="V000,V001 (blank = all)"> <button class=act onclick="inj()">inject</button></div>`}
+ if(tab=='audit'){try{const [l,v]=await Promise.all([api('/api/audit'),api('/api/audit/verify')]);m.innerHTML=`<div class=card>chain: <b class="${v.ok?'ok':'bad'}">${v.ok?'verified':'BROKEN at '+v.broken_at}</b> · ${v.entries} entries</div><div class=card><table><tr><th>#<th>time<th>actor<th>action<th>detail</tr>${l.reverse().map(a=>`<tr><td>${a.seq}<td>${new Date(a.ts*1e3).toLocaleTimeString()}<td>${esc(a.actor)}<td>${esc(a.action)}<td class=m>${esc(a.detail)}</tr>`).join('')}</table></div>`}catch(e){m.innerHTML='<div class="card m">audit requires the admin role</div>'}}}
+const fb=async id=>{await api('/api/feedback','POST',{incident_id:id,confirmed_cause:$('#f'+id).value});toast('feedback sent')};
+const cons=async(r,d)=>{await api('/api/consent','POST',{request_id:r,decision:d});toast(d);render()};
+const rb=async id=>{await api('/api/rulebook/approve','POST',{event_id:id});toast('rollout started');render()};
+const inj=async()=>{const v=$('#vs').value.split(',').map(x=>x.trim()).filter(Boolean);await api('/api/inject','POST',{scenario:$('#sc').value,vehicles:v});toast('injected')};
+$('#main').innerHTML=`<div class=card style="max-width:320px;margin:60px auto"><h3>Sign in</h3><input id=u placeholder=username style="width:100%;margin:4px 0"><input id=p type=password placeholder=password style="width:100%;margin:4px 0"><button class=act onclick="login()">Sign in</button></div>`;
+</script>
