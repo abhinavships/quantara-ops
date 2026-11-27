@@ -272,3 +272,14 @@ def test_weak_secret_refused():
 
 def test_ui_served_and_no_docs(env):
     assert "Quantara" in env.c.get("/").text and env.c.get("/docs").status_code == 404
+
+
+def test_condense_path_prefix_is_stripped_and_signature_is_prefix_free(env):
+    pre = "/394a9fbf-f947-4dd7-8a58-e427804ebaaa"
+    assert env.c.get(pre + "/healthz").json()["ok"] is True
+    assert env.c.get(pre + "/api/me", headers=env.hdr("admin")).json()["role"] == "admin"
+    env.feed("cloud.escalations", esc("V1", "V1-1"))
+    raw = json.dumps({"incident_id": "V1-1", "confirmed_cause": "x"}).encode(); ts, n = int(time.time()), "p1"
+    sig = hmac.new(env.sess["tech"]["session_key"].encode(), Auth.signing_string("POST", "/api/feedback", ts, n, raw).encode(), hashlib.sha256).hexdigest()
+    r = env.c.post(pre + "/api/feedback", content=raw, headers={**env.hdr("tech"), "x-timestamp": str(ts), "x-nonce": n, "x-signature": sig})
+    assert r.status_code == 200

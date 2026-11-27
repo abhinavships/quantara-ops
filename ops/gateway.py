@@ -4,6 +4,7 @@ import asyncio
 import json
 import os
 import pathlib
+import re
 import time
 
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
@@ -19,12 +20,28 @@ SCENARIOS = ("breakdown", "grid_outage", "degradation", "cyber_flood", "cyber_fu
 UI = pathlib.Path(__file__).resolve().parent.parent / "ui" / "index.html"
 
 
+class PrefixStrip:
+    """Condense serves the app under /<uuid>/; strip that segment so routes and request signatures are prefix-free."""
+    _re = re.compile(r"^/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(?=/|$)")
+
+    def __init__(self, app): self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] in ("http", "websocket"):
+            m = self._re.match(scope["path"])
+            if m:
+                scope = {**scope, "path": scope["path"][m.end():] or "/"}
+                if scope.get("raw_path"): scope["raw_path"] = scope["path"].encode()
+        await self.app(scope, receive, send)
+
+
 def create_app(store, bus, auth: Auth, sandbox=None, clock=time.time, read_rate=(20, 40), write_rate=(2, 6), login_rate=(0.2, 5)):
     app = FastAPI(title="Quantara ops gateway", docs_url=None, redoc_url=None, openapi_url=None)
     audit = AuditLog(store, publish=lambda e: bus.publish(config.topic("audit"), e, key="audit"))
     rl_r, rl_w, rl_l = RateLimiter(*read_rate), RateLimiter(*write_rate), RateLimiter(*login_rate)
     sandbox = (os.environ.get("SANDBOX") == "1") if sandbox is None else sandbox
     app.state.audit, app.state.store, app.state.auth = audit, store, auth
+    app.add_middleware(PrefixStrip)
 
     @app.exception_handler(AuthError)
     async def _auth_err(_, e): return JSONResponse({"error": e.why}, status_code=e.status)

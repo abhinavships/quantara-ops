@@ -35,5 +35,21 @@ def main():
         threading.Event().wait()
 
 
+def _diagnose(err):
+    """If startup fails, keep the port alive and show why (Condense logs are not always visible). Never prints env values."""
+    import http.server
+    import traceback
+    txt = "ops failed to start:\n" + "".join(traceback.format_exception(type(err), err, err.__traceback__))
+    log.error(txt)
+
+    class H(http.server.BaseHTTPRequestHandler):
+        def do_GET(self):
+            self.send_response(500); self.send_header("content-type", "text/plain"); self.end_headers(); self.wfile.write(txt.encode())
+    http.server.HTTPServer(("0.0.0.0", int(os.environ.get("portNumber") or os.environ.get("PORT") or 8080)), H).serve_forever()
+
+
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        _diagnose(e)
