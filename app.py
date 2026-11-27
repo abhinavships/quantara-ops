@@ -30,7 +30,7 @@ def main():
     if role in ("all", "sink"):
         threading.Thread(target=Sink(store, bus).run, daemon=True).start()
     if role in ("all", "gateway"):
-        uvicorn.run(create_app(store, bus, Auth.from_env()), host="0.0.0.0", port=int(os.environ.get("PORT", "8080")), log_level="info")
+        uvicorn.run(create_app(store, bus, Auth.from_env()), host="0.0.0.0", port=int(os.environ.get("portNumber") or os.environ.get("PORT") or 8080), log_level="info")
     else:
         threading.Event().wait()
 
