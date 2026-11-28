@@ -8,7 +8,7 @@ datasources:
     user: "${PG_USER}"
     jsonData:
       database: "${PG_DATABASE}"
-      sslmode: require
+      sslmode: "${PG_SSLMODE}"
       postgresVersion: 1500
     secureJsonData:
       password: "${PG_PASSWORD}"

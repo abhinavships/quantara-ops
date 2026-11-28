@@ -1,0 +1,104 @@
+# Quantara backend: edge simulator -> Kafka -> stream -> cloud services -> ops gateway/DB (+ optional Grafana).
+#   python deploy/gen_env.py
+#   docker compose -f deploy/docker-compose.yml --env-file deploy/.env --profile localkafka up --build
+# Source of each image: the 4 public repos (git build contexts). To build from local sibling checkouts instead, add
+#   -f deploy/docker-compose.local-src.yml
+# Compose has NOT been run in the authoring environment (no Docker there); first real run is yours - see deploy/README.md.
+x-common: &common
+  restart: unless-stopped
+  env_file: .env
+  environment: &kafka
+    TOPIC_PREFIX: ${TOPIC_PREFIX:-quantara_}
+    KAFKA_BOOTSTRAP: ${KAFKA_BOOTSTRAP:-redpanda:9092}
+    KAFKA_SECURITY_PROTOCOL: ${KAFKA_SECURITY_PROTOCOL:-PLAINTEXT}
+    KAFKA_SASL_MECHANISM: ${KAFKA_SASL_MECHANISM:-SCRAM-SHA-512}
+    KAFKA_SASL_USERNAME: ${KAFKA_SASL_USERNAME:-quantara}
+    KAFKA_SASL_PASSWORD: ${KAFKA_SASL_PASSWORD:-}
+
+services:
+  redpanda:                      # local Kafka (profile localkafka). Skip it when using the Condense broker.
+    profiles: [localkafka]
+    image: docker.redpanda.com/redpandadata/redpanda:v24.2.7
+    command: [redpanda, start, --smp, "1", --memory, 768M, --overprovisioned, --node-id, "0",
+              --kafka-addr, "internal://0.0.0.0:9092,external://0.0.0.0:19092",
+              --advertise-kafka-addr, "internal://redpanda:9092,external://localhost:19092"]
+    ports: ["19092:19092"]
+    healthcheck: {test: ["CMD", "rpk", "cluster", "health"], interval: 5s, timeout: 5s, retries: 20}
+
+  topics:                        # creates the 7 physical topics once (same list as quantara_core.topics.PHYSICAL)
+    profiles: [localkafka]
+    image: docker.redpanda.com/redpandadata/redpanda:v24.2.7
+    depends_on: {redpanda: {condition: service_healthy}}
+    restart: "no"
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        P=${TOPIC_PREFIX:-quantara_}
+        for t in raw.telemetry:6 raw.edge:3 valid.telemetry:6 valid.edge:3 vss.enriched:6 cloud.events:3 edge.in:3; do
+          rpk topic create "$$P$${t%%:*}" -p "$${t##*:}" -X brokers=redpanda:9092 || true
+        done
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment: {POSTGRES_USER: quantara, POSTGRES_PASSWORD: quantara, POSTGRES_DB: quantara}
+    volumes: [pgdata:/var/lib/postgresql/data]
+    ports: ["5432:5432"]
+    healthcheck: {test: ["CMD-SHELL", "pg_isready -U quantara"], interval: 5s, retries: 20}
+
+  ingest:                        # input connector: 100 simulated vehicles + edge agents; consumes control.inject and commands.out
+    <<: *common
+    build: {context: "https://github.com/abhinavships/quantara-ingest.git#main"}
+    depends_on: {topics: {condition: service_completed_successfully, required: false}}
+
+  stream-validate:
+    <<: *common
+    build: {context: "https://github.com/abhinavships/quantara-stream.git#main"}
+    environment: {<<: *kafka, ROLE: validate}
+
+  stream-enrich:
+    <<: *common
+    build: {context: "https://github.com/abhinavships/quantara-stream.git#main"}
+    environment: {<<: *kafka, ROLE: enrich}
+
+  svc-rca: &svc
+    <<: *common
+    build: {context: "https://github.com/abhinavships/quantara-services.git#main"}
+    environment: {<<: *kafka, ROLE: rca}
+  svc-twin:
+    <<: *svc
+    environment: {<<: *kafka, ROLE: "twin+fleet"}   # fleet = model-driven situation planner (shares the twin process)
+  svc-route:
+    <<: *svc
+    environment: {<<: *kafka, ROLE: route}
+  svc-ota:
+    <<: *svc
+    environment: {<<: *kafka, ROLE: ota}
+
+  ops:                           # sink + secured gateway (REST + WebSocket) + reference UI on :8080
+    <<: *common
+    build: {context: "https://github.com/abhinavships/quantara-ops.git#main"}
+    depends_on: {postgres: {condition: service_healthy}}
+    ports: ["8080:8080"]
+    environment: {<<: *kafka, PORT: "8080"}
+    healthcheck: {test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://localhost:8080/healthz')"], interval: 10s, retries: 10}
+
+  grafana:                       # optional: scenario dashboards (profile grafana) on :3000, anonymous admin - local only
+    profiles: [grafana]
+    image: grafana/grafana:11.2.0
+    depends_on: {postgres: {condition: service_healthy}}
+    ports: ["3000:3000"]
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+      GF_AUTH_DISABLE_LOGIN_FORM: "true"
+      PG_HOST: postgres
+      PG_USER: quantara
+      PG_PASSWORD: quantara
+      PG_DATABASE: quantara
+      PG_SSLMODE: disable
+    volumes:
+      - ../grafana/provisioning:/etc/grafana/provisioning:ro
+      - ../grafana:/var/lib/grafana/dashboards:ro
+
+volumes: {pgdata: {}}

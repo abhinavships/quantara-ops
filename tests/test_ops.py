@@ -332,3 +332,35 @@ def test_history_and_signals_are_stored_downsampled_and_scoped(env):
     assert env.c.get("/api/history?vehicle=V2", headers=env.hdr("viewer")).status_code == 403   # viewer scoped to V1
     s = env.c.get("/api/signals", headers=env.hdr("viewer")).json()
     assert s["vehicles"] == ["V1"] and "Vehicle.Acceleration.Vertical" in s["signals"]
+
+
+
+def test_situation_is_published_and_needs_text_sandbox_and_role(env):
+    assert env.post("tech", "/api/situation", {"text": "x"}).status_code == 400
+    assert env.post("owner1", "/api/situation", {"text": "highway closed, +60 km"}).status_code == 403
+    r = env.post("tech", "/api/situation", {"text": "highway closed, +60 km", "params": {"energy_penalty": 0.1}})
+    assert r.status_code == 200
+    m = env.bus.log[config.topic("control.inject")][-1][1]
+    assert m["scenario"] == "situation" and m["params"] == {"energy_penalty": 0.1} and m["id"] == r.json()["id"]
+    assert env.app.state.audit.entries()[-1]["action"] == "situation"
+
+
+def test_plans_and_notifications_are_listed(env):
+    env.feed("cloud.fleet", {"kind": "plan", "id": "p1", "ts": 5.0, "summary": "s", "actions": [], "source": "llm"})
+    env.feed("notify.out", {"kind": "notification", "vehicle_id": "V1", "message": "charge", "ts": 5.0})
+    env.feed("notify.out", {"kind": "notification", "vehicle_id": "V2", "message": "hidden", "ts": 5.0})
+    assert env.c.get("/api/plans", headers=env.hdr("viewer")).json()[0]["id"] == "p1"
+    assert [n["message"] for n in env.c.get("/api/notifications", headers=env.hdr("viewer")).json()] == ["charge"]
+
+
+def test_replay_save_freezes_30_min_and_respects_scope(env):
+    now = time.time()
+    env.store.add_event("vss.enriched", {"vehicle_id": "V1", "ts": now - 60, "vss": {"Vehicle.Speed": 50}})
+    env.store.flush()
+    assert env.post("owner2", "/api/replay/save", {"vehicle": "V1"}).status_code == 403
+    r = env.post("owner1", "/api/replay/save", {"vehicle": "V1", "note": "scene"})
+    assert r.status_code == 200
+    rid = r.json()["replay_id"]
+    assert env.c.get("/api/replays", headers=env.hdr("owner1")).json()[0]["signals"] == 1
+    assert env.c.get(f"/api/replays/{rid}", headers=env.hdr("owner1")).json()["series"]["Vehicle.Speed"][0][1] == 50
+    assert env.c.get(f"/api/replays/{rid}", headers=env.hdr("owner2")).status_code == 404
