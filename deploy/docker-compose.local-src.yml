@@ -1,0 +1,10 @@
+# Build from sibling checkouts instead of GitHub:  ../../quantara-ingest, ../../quantara-stream, ../../quantara-services, ../
+services:
+  ingest:          {build: {context: ../../quantara-ingest}}
+  stream-validate: {build: {context: ../../quantara-stream}}
+  stream-enrich:   {build: {context: ../../quantara-stream}}
+  svc-rca:         {build: {context: ../../quantara-services}}
+  svc-twin:        {build: {context: ../../quantara-services}}
+  svc-route:       {build: {context: ../../quantara-services}}
+  svc-ota:         {build: {context: ../../quantara-services}}
+  ops:             {build: {context: ..}}
