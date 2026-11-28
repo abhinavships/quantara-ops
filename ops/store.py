@@ -71,7 +71,7 @@ class Store:
         kind = msg.get("kind") if isinstance(msg, dict) else None
         ts = msg.get("ts") if isinstance(msg, dict) and isinstance(msg.get("ts"), (int, float)) else time.time()
         if topic == "vss.enriched":                       # high-rate: latest per vehicle + a downsampled history
-            self.set_latest(f"vss:{vid}", msg); self._hist(vid, ts, msg.get("vss")); return None
+            self.set_latest(f"vss:{vid}", msg); self._hist(vid, ts if abs(ts - time.time()) < 86400 else time.time(), msg.get("vss")); return None
         self.exec("INSERT INTO events(ts,topic,kind,vehicle_id,payload) VALUES(?,?,?,?,?)",
                   (ts, topic, kind, vid, json.dumps(msg)))
         if kind == "feeds" or (topic == "cloud.fleet" and kind == "feeds"): self.set_latest("feeds", msg)
