@@ -37,7 +37,7 @@
      "format": "time_series",
      "rawQuery": true,
      "editorMode": "code",
-     "rawSql": "SELECT to_timestamp(ts) AS time, (payload->'edge_counters'->>'edge_resolved')::float AS edge_resolved, (payload->'edge_counters'->>'escalated')::float AS escalated FROM events WHERE topic='cloud.fleet' AND kind='feeds' AND $__timeFilter(to_timestamp(ts)) ORDER BY ts"
+     "rawSql": "SELECT to_timestamp(ts) AS time, (payload->'edge_counters'->>'edge_resolved')::float AS edge_resolved, (payload->'edge_counters'->>'escalated')::float AS escalated FROM events WHERE topic='cloud.fleet' AND kind='feeds' AND ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo() ORDER BY ts"
     }
    ]
   },
@@ -65,7 +65,7 @@
      "format": "time_series",
      "rawQuery": true,
      "editorMode": "code",
-     "rawSql": "SELECT to_timestamp(ts) AS time, (payload->'edge_counters'->>'bytes_saved')::float AS bytes_saved, (payload->'edge_counters'->>'bytes_sent')::float AS bytes_sent FROM events WHERE topic='cloud.fleet' AND kind='feeds' AND $__timeFilter(to_timestamp(ts)) ORDER BY ts"
+     "rawSql": "SELECT to_timestamp(ts) AS time, (payload->'edge_counters'->>'bytes_saved')::float AS bytes_saved, (payload->'edge_counters'->>'bytes_sent')::float AS bytes_sent FROM events WHERE topic='cloud.fleet' AND kind='feeds' AND ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo() ORDER BY ts"
     }
    ]
   },
@@ -93,7 +93,7 @@
      "format": "table",
      "rawQuery": true,
      "editorMode": "code",
-     "rawSql": "SELECT payload->'incident'->>'cause' AS cause, count(*) AS n FROM events WHERE topic IN ('cloud.escalations','cloud.security') AND $__timeFilter(to_timestamp(ts)) GROUP BY 1 ORDER BY 2 DESC"
+     "rawSql": "SELECT payload->'incident'->>'cause' AS cause, count(*) AS n FROM events WHERE topic IN ('cloud.escalations','cloud.security') AND ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo() GROUP BY 1 ORDER BY 2 DESC"
     }
    ]
   },
@@ -121,7 +121,7 @@
      "format": "table",
      "rawQuery": true,
      "editorMode": "code",
-     "rawSql": "SELECT r AS reason, count(*) AS n FROM events, jsonb_array_elements_text(payload->'reasons') r WHERE topic IN ('cloud.escalations','cloud.security') AND $__timeFilter(to_timestamp(ts)) GROUP BY 1 ORDER BY 2 DESC"
+     "rawSql": "SELECT r AS reason, count(*) AS n FROM events, jsonb_array_elements_text(payload->'reasons') r WHERE topic IN ('cloud.escalations','cloud.security') AND ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo() GROUP BY 1 ORDER BY 2 DESC"
     }
    ]
   },
@@ -149,7 +149,7 @@
      "format": "table",
      "rawQuery": true,
      "editorMode": "code",
-     "rawSql": "SELECT payload->>'final_cause' AS cause, count(*) AS n FROM events WHERE topic='cloud.twin' AND $__timeFilter(to_timestamp(ts)) GROUP BY 1 ORDER BY 2 DESC"
+     "rawSql": "SELECT payload->>'final_cause' AS cause, count(*) AS n FROM events WHERE topic='cloud.twin' AND ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo() GROUP BY 1 ORDER BY 2 DESC"
     }
    ]
   },
@@ -177,7 +177,7 @@
      "format": "time_series",
      "rawQuery": true,
      "editorMode": "code",
-     "rawSql": "SELECT date_trunc('minute', to_timestamp(ts)) AS time, count(*) FILTER (WHERE topic='commands.out') AS issued, count(*) FILTER (WHERE topic='notify.out' AND kind='refused') AS refused FROM events WHERE $__timeFilter(to_timestamp(ts)) GROUP BY 1 ORDER BY 1"
+     "rawSql": "SELECT date_trunc('minute', to_timestamp(ts)) AS time, count(*) FILTER (WHERE topic='commands.out') AS issued, count(*) FILTER (WHERE topic='notify.out' AND kind='refused') AS refused FROM events WHERE ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo() GROUP BY 1 ORDER BY 1"
     }
    ]
   },
@@ -233,7 +233,7 @@
      "format": "time_series",
      "rawQuery": true,
      "editorMode": "code",
-     "rawSql": "SELECT date_trunc('minute', to_timestamp(ts)) AS time, count(*) FILTER (WHERE topic='dlq') AS dlq, count(*) FILTER (WHERE topic='quarantine') AS quarantine FROM events WHERE $__timeFilter(to_timestamp(ts)) GROUP BY 1 ORDER BY 1"
+     "rawSql": "SELECT date_trunc('minute', to_timestamp(ts)) AS time, count(*) FILTER (WHERE topic='dlq') AS dlq, count(*) FILTER (WHERE topic='quarantine') AS quarantine FROM events WHERE ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo() GROUP BY 1 ORDER BY 1"
     }
    ]
   },
@@ -289,7 +289,7 @@
      "format": "time_series",
      "rawQuery": true,
      "editorMode": "code",
-     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Vehicle.Speed')::float AS \"Vehicle.Speed\" FROM telemetry WHERE vehicle_id='${vehicle}' AND $__timeFilter(to_timestamp(ts)) ORDER BY ts"
+     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Vehicle.Speed')::float AS \"Vehicle.Speed\" FROM telemetry WHERE vehicle_id='${vehicle}' AND ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo() ORDER BY ts"
     }
    ],
    "fieldConfig": {
@@ -323,7 +323,7 @@
      "format": "time_series",
      "rawQuery": true,
      "editorMode": "code",
-     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Vehicle.Chassis.Axle.Row1.Wheel.Left.Speed')::float AS \"FL\" FROM telemetry WHERE vehicle_id='${vehicle}' AND $__timeFilter(to_timestamp(ts)) ORDER BY ts"
+     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Vehicle.Chassis.Axle.Row1.Wheel.Left.Speed')::float AS \"FL\" FROM telemetry WHERE vehicle_id='${vehicle}' AND ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo() ORDER BY ts"
     },
     {
      "refId": "B",
@@ -334,7 +334,7 @@
      "format": "time_series",
      "rawQuery": true,
      "editorMode": "code",
-     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Vehicle.Chassis.Axle.Row1.Wheel.Right.Speed')::float AS \"FR\" FROM telemetry WHERE vehicle_id='${vehicle}' AND $__timeFilter(to_timestamp(ts)) ORDER BY ts"
+     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Vehicle.Chassis.Axle.Row1.Wheel.Right.Speed')::float AS \"FR\" FROM telemetry WHERE vehicle_id='${vehicle}' AND ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo() ORDER BY ts"
     },
     {
      "refId": "C",
@@ -345,7 +345,7 @@
      "format": "time_series",
      "rawQuery": true,
      "editorMode": "code",
-     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Vehicle.Chassis.Axle.Row2.Wheel.Left.Speed')::float AS \"RL\" FROM telemetry WHERE vehicle_id='${vehicle}' AND $__timeFilter(to_timestamp(ts)) ORDER BY ts"
+     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Vehicle.Chassis.Axle.Row2.Wheel.Left.Speed')::float AS \"RL\" FROM telemetry WHERE vehicle_id='${vehicle}' AND ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo() ORDER BY ts"
     },
     {
      "refId": "D",
@@ -356,7 +356,7 @@
      "format": "time_series",
      "rawQuery": true,
      "editorMode": "code",
-     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Vehicle.Chassis.Axle.Row2.Wheel.Right.Speed')::float AS \"RR\" FROM telemetry WHERE vehicle_id='${vehicle}' AND $__timeFilter(to_timestamp(ts)) ORDER BY ts"
+     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Vehicle.Chassis.Axle.Row2.Wheel.Right.Speed')::float AS \"RR\" FROM telemetry WHERE vehicle_id='${vehicle}' AND ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo() ORDER BY ts"
     }
    ],
    "fieldConfig": {
@@ -390,7 +390,7 @@
      "format": "time_series",
      "rawQuery": true,
      "editorMode": "code",
-     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Vehicle.Acceleration.Longitudinal')::float AS \"longitudinal\" FROM telemetry WHERE vehicle_id='${vehicle}' AND $__timeFilter(to_timestamp(ts)) ORDER BY ts"
+     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Vehicle.Acceleration.Longitudinal')::float AS \"longitudinal\" FROM telemetry WHERE vehicle_id='${vehicle}' AND ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo() ORDER BY ts"
     },
     {
      "refId": "B",
@@ -401,7 +401,7 @@
      "format": "time_series",
      "rawQuery": true,
      "editorMode": "code",
-     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Vehicle.Acceleration.Lateral')::float AS \"lateral (g)\" FROM telemetry WHERE vehicle_id='${vehicle}' AND $__timeFilter(to_timestamp(ts)) ORDER BY ts"
+     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Vehicle.Acceleration.Lateral')::float AS \"lateral (g)\" FROM telemetry WHERE vehicle_id='${vehicle}' AND ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo() ORDER BY ts"
     },
     {
      "refId": "C",
@@ -412,7 +412,7 @@
      "format": "time_series",
      "rawQuery": true,
      "editorMode": "code",
-     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Vehicle.Acceleration.Vertical')::float AS \"vertical (bumps)\" FROM telemetry WHERE vehicle_id='${vehicle}' AND $__timeFilter(to_timestamp(ts)) ORDER BY ts"
+     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Vehicle.Acceleration.Vertical')::float AS \"vertical (bumps)\" FROM telemetry WHERE vehicle_id='${vehicle}' AND ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo() ORDER BY ts"
     }
    ]
   },
@@ -440,7 +440,7 @@
      "format": "time_series",
      "rawQuery": true,
      "editorMode": "code",
-     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Vehicle.Chassis.Axle.Row1.Wheel.Left.Suspension.Travel')::float AS \"FL\" FROM telemetry WHERE vehicle_id='${vehicle}' AND $__timeFilter(to_timestamp(ts)) ORDER BY ts"
+     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Vehicle.Chassis.Axle.Row1.Wheel.Left.Suspension.Travel')::float AS \"FL\" FROM telemetry WHERE vehicle_id='${vehicle}' AND ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo() ORDER BY ts"
     },
     {
      "refId": "B",
@@ -451,7 +451,7 @@
      "format": "time_series",
      "rawQuery": true,
      "editorMode": "code",
-     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Vehicle.Chassis.Axle.Row1.Wheel.Right.Suspension.Travel')::float AS \"FR\" FROM telemetry WHERE vehicle_id='${vehicle}' AND $__timeFilter(to_timestamp(ts)) ORDER BY ts"
+     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Vehicle.Chassis.Axle.Row1.Wheel.Right.Suspension.Travel')::float AS \"FR\" FROM telemetry WHERE vehicle_id='${vehicle}' AND ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo() ORDER BY ts"
     },
     {
      "refId": "C",
@@ -462,7 +462,7 @@
      "format": "time_series",
      "rawQuery": true,
      "editorMode": "code",
-     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Vehicle.Chassis.Axle.Row2.Wheel.Left.Suspension.Travel')::float AS \"RL\" FROM telemetry WHERE vehicle_id='${vehicle}' AND $__timeFilter(to_timestamp(ts)) ORDER BY ts"
+     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Vehicle.Chassis.Axle.Row2.Wheel.Left.Suspension.Travel')::float AS \"RL\" FROM telemetry WHERE vehicle_id='${vehicle}' AND ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo() ORDER BY ts"
     },
     {
      "refId": "D",
@@ -473,7 +473,7 @@
      "format": "time_series",
      "rawQuery": true,
      "editorMode": "code",
-     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Vehicle.Chassis.Axle.Row2.Wheel.Right.Suspension.Travel')::float AS \"RR\" FROM telemetry WHERE vehicle_id='${vehicle}' AND $__timeFilter(to_timestamp(ts)) ORDER BY ts"
+     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Vehicle.Chassis.Axle.Row2.Wheel.Right.Suspension.Travel')::float AS \"RR\" FROM telemetry WHERE vehicle_id='${vehicle}' AND ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo() ORDER BY ts"
     }
    ],
    "fieldConfig": {
@@ -507,7 +507,7 @@
      "format": "time_series",
      "rawQuery": true,
      "editorMode": "code",
-     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Vehicle.Chassis.SteeringWheel.Angle')::float AS \"Vehicle.Chassis.SteeringWheel.Angle\" FROM telemetry WHERE vehicle_id='${vehicle}' AND $__timeFilter(to_timestamp(ts)) ORDER BY ts"
+     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Vehicle.Chassis.SteeringWheel.Angle')::float AS \"Vehicle.Chassis.SteeringWheel.Angle\" FROM telemetry WHERE vehicle_id='${vehicle}' AND ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo() ORDER BY ts"
     }
    ],
    "fieldConfig": {
@@ -541,7 +541,7 @@
      "format": "time_series",
      "rawQuery": true,
      "editorMode": "code",
-     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Vehicle.Powertrain.TractionBattery.Temperature.Average')::float AS \"temp \u00b0C\" FROM telemetry WHERE vehicle_id='${vehicle}' AND $__timeFilter(to_timestamp(ts)) ORDER BY ts"
+     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Vehicle.Powertrain.TractionBattery.Temperature.Average')::float AS \"temp \u00b0C\" FROM telemetry WHERE vehicle_id='${vehicle}' AND ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo() ORDER BY ts"
     },
     {
      "refId": "B",
@@ -552,7 +552,7 @@
      "format": "time_series",
      "rawQuery": true,
      "editorMode": "code",
-     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Vehicle.Powertrain.TractionBattery.StateOfCharge.Current')::float AS \"state of charge (0-1)\" FROM telemetry WHERE vehicle_id='${vehicle}' AND $__timeFilter(to_timestamp(ts)) ORDER BY ts"
+     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Vehicle.Powertrain.TractionBattery.StateOfCharge.Current')::float AS \"state of charge (0-1)\" FROM telemetry WHERE vehicle_id='${vehicle}' AND ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo() ORDER BY ts"
     }
    ]
   },
@@ -580,7 +580,7 @@
      "format": "time_series",
      "rawQuery": true,
      "editorMode": "code",
-     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Vehicle.Body.Lights.Brake.IsActive')::float AS \"brake lamp\" FROM telemetry WHERE vehicle_id='${vehicle}' AND $__timeFilter(to_timestamp(ts)) ORDER BY ts"
+     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Vehicle.Body.Lights.Brake.IsActive')::float AS \"brake lamp\" FROM telemetry WHERE vehicle_id='${vehicle}' AND ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo() ORDER BY ts"
     },
     {
      "refId": "B",
@@ -591,7 +591,7 @@
      "format": "time_series",
      "rawQuery": true,
      "editorMode": "code",
-     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Vehicle.Body.Lights.Beam.Low.IsOn')::float AS \"low beam\" FROM telemetry WHERE vehicle_id='${vehicle}' AND $__timeFilter(to_timestamp(ts)) ORDER BY ts"
+     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Vehicle.Body.Lights.Beam.Low.IsOn')::float AS \"low beam\" FROM telemetry WHERE vehicle_id='${vehicle}' AND ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo() ORDER BY ts"
     },
     {
      "refId": "C",
@@ -602,7 +602,7 @@
      "format": "time_series",
      "rawQuery": true,
      "editorMode": "code",
-     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Vehicle.Body.Lights.Hazard.IsSignaling')::float AS \"hazard\" FROM telemetry WHERE vehicle_id='${vehicle}' AND $__timeFilter(to_timestamp(ts)) ORDER BY ts"
+     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Vehicle.Body.Lights.Hazard.IsSignaling')::float AS \"hazard\" FROM telemetry WHERE vehicle_id='${vehicle}' AND ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo() ORDER BY ts"
     },
     {
      "refId": "D",
@@ -613,7 +613,7 @@
      "format": "time_series",
      "rawQuery": true,
      "editorMode": "code",
-     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Vehicle.Powertrain.Transmission.CurrentGear')::float AS \"gear\" FROM telemetry WHERE vehicle_id='${vehicle}' AND $__timeFilter(to_timestamp(ts)) ORDER BY ts"
+     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Vehicle.Powertrain.Transmission.CurrentGear')::float AS \"gear\" FROM telemetry WHERE vehicle_id='${vehicle}' AND ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo() ORDER BY ts"
     }
    ]
   }
