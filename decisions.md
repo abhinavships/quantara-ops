@@ -13,3 +13,9 @@
 11. **Route optimiser is straight-line × 1.3**; no road graph. Good enough to show reachability reasoning; not a navigation product.
 12. **Condense specifics learned:** Python 3.12 builder works; variables are a UI table or a JSON editor (Upload JSON → paste); IDE pod restarts lose `~/.ssh`, so repos are public and cloned over HTTPS; "Clone" on a deployment copies its env including the password.
 13. **Test corrections (not weakening):** an IDS test that accepted any attack label was tightened; a hysteresis test with `or True` was rewritten; an RCA-prior test asserting "posterior doubles" (impossible from 0.49) was replaced by "+0.3 and becomes top"; a `Store` bug (falsy Redis client ignored) was found by a test and fixed.
+
+## D-topics: 20 logical topics on 7 physical (cluster cap = 10)
+The organisers capped the cluster at 10 topics. Rather than shrink the data contract, `quantara-core` v0.4.0 routes logical topics onto 7 physical ones
+and tags messages with `_lt`; consumers filter by tag. Trade-off: consumers of a shared physical topic (`cloud.events`, `edge.in`) read and discard
+messages for other logical topics. Volume is low (synthetic, per-vehicle summaries), so this costs little; 3 topics stay free for later needs.
+Also: no consumer group is created without an active consumer (idle groups show as lag).
