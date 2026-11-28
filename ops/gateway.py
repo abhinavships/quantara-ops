@@ -19,6 +19,23 @@ SCENARIOS = ("breakdown", "grid_outage", "degradation", "cyber_flood", "cyber_fu
              "cal_tamper", "telemetry_mismatch", "pump_recover", "clear", "link_down", "link_up",
              "contactor_stuck", "dcdc_fail", "bms_comm_lost", "battery_degraded", "obd_dongle", "ecu_busoff", "tcu_intrusion",
              "rogue_charger", "adas_spoof")
+PARAM_LIMITS = {"energy_penalty": (0.0, 0.5), "detour_km": (0.0, 500.0), "climb_m": (0.0, 5000.0), "ambient_c": (-40.0, 60.0)}
+
+
+def clean_params(p):
+    """Situation params reach every simulated car, so only known keys are accepted and numbers are clamped to sane ranges."""
+    out = {}
+    for k, v in p.items():
+        if k == "closed_stations":
+            if not isinstance(v, list): raise AuthError(400, "closed_stations must be a list")
+            out[k] = [str(x)[:32] for x in v[:20]]
+        elif k in PARAM_LIMITS:
+            if isinstance(v, bool) or not isinstance(v, (int, float)) or v != v: raise AuthError(400, f"{k} must be a number")
+            lo, hi = PARAM_LIMITS[k]; out[k] = min(hi, max(lo, float(v)))
+        else: raise AuthError(400, f"unknown param {k}")
+    return out
+
+
 UI = pathlib.Path(__file__).resolve().parent.parent / "ui" / "index.html"
 
 
@@ -266,7 +283,7 @@ def create_app(store, bus, auth: Auth, sandbox=None, clock=time.time, read_rate=
         if not sandbox: raise AuthError(403, "injection disabled outside SANDBOX=1")
         text = str(b.get("text", "")).strip()[:600]
         if len(text) < 5: raise AuthError(400, "text required")
-        params = b.get("params") if isinstance(b.get("params"), dict) else {}
+        params = clean_params(b["params"]) if isinstance(b.get("params"), dict) else {}
         sid = f"sit-{int(clock())}"
         audit.append(c["sub"], "situation", {"id": sid, "text": text})
         pub("control.inject", {"scenario": "situation", "id": sid, "text": text, "params": params, "ts": clock()})

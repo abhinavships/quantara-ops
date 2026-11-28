@@ -364,3 +364,12 @@ def test_replay_save_freezes_30_min_and_respects_scope(env):
     assert env.c.get("/api/replays", headers=env.hdr("owner1")).json()[0]["signals"] == 1
     assert env.c.get(f"/api/replays/{rid}", headers=env.hdr("owner1")).json()["series"]["Vehicle.Speed"][0][1] == 50
     assert env.c.get(f"/api/replays/{rid}", headers=env.hdr("owner2")).status_code == 404
+
+
+def test_situation_params_are_whitelisted_and_clamped(env):
+    r = env.post("tech", "/api/situation", {"text": "detour on a mountain road", "params": {"energy_penalty": 9, "detour_km": 60, "closed_stations": ["S1"] * 50}})
+    assert r.status_code == 200
+    m = env.bus.log[config.topic("control.inject")][-1][1]
+    assert m["params"]["energy_penalty"] == 0.5 and m["params"]["detour_km"] == 60.0 and len(m["params"]["closed_stations"]) == 20
+    assert env.post("tech", "/api/situation", {"text": "detour on a mountain road", "params": {"rm_rf": 1}}).status_code == 400
+    assert env.post("tech", "/api/situation", {"text": "detour on a mountain road", "params": {"energy_penalty": "high"}}).status_code == 400
