@@ -31,7 +31,7 @@ CREATE TRIGGER audit_ro BEFORE UPDATE OR DELETE ON audit FOR EACH ROW EXECUTE FU
 class Store:
     def __init__(self, dsn=None, redis=None):
         self.lock, self.redis, self.pg = threading.RLock(), redis, bool(dsn and dsn.startswith("postgres"))
-        self._last_hist, self._hist_n, self._last_latest, self._pending = {}, 0, {}, {}
+        self._last_hist, self._hist_n, self._pending, self._hist_buf, self._last_flush = {}, 0, {}, [], 0.0
         if self.pg:
             import psycopg
             self.c = psycopg.connect(dsn, autocommit=True)
@@ -55,6 +55,7 @@ class Store:
             return cur
 
     def q(self, sql, p=()):
+        if self._pending or self._hist_buf: self.flush()
         with self.lock:
             cur = self.c.execute(self._sql(sql), p)
             cols = [d[0] for d in cur.description]
@@ -70,26 +71,44 @@ class Store:
         vid = msg.get("vehicle_id") if isinstance(msg, dict) else None
         kind = msg.get("kind") if isinstance(msg, dict) else None
         ts = msg.get("ts") if isinstance(msg, dict) and isinstance(msg.get("ts"), (int, float)) else time.time()
-        if topic == "vss.enriched":                       # high-rate: latest per vehicle + a downsampled history
-            now = time.time()
-            self._pending[f"vss:{vid}"] = msg                                   # newest wins, served from memory
-            if now - self._last_latest.get(vid, 0) >= self.LATEST_EVERY_S:      # coalesce: a backlog must drain, not do one DB write per stale message
-                self._last_latest[vid] = now; self.set_latest(f"vss:{vid}", msg)
-            self._hist(vid, ts if abs(ts - time.time()) < 86400 else time.time(), msg.get("vss")); return None
+        if topic == "vss.enriched":                       # high-rate: newest per vehicle in memory, flushed to the DB in ONE round-trip every FLUSH_S
+            self._pending[f"vss:{vid}"] = msg
+            self._hist(vid, ts if abs(ts - time.time()) < 86400 else time.time(), msg.get("vss"))
+            if time.time() - self._last_flush >= self.FLUSH_S: self.flush()
+            return None
         self.exec("INSERT INTO events(ts,topic,kind,vehicle_id,payload) VALUES(?,?,?,?,?)",
                   (ts, topic, kind, vid, json.dumps(msg)))
         if kind == "feeds" or (topic == "cloud.fleet" and kind == "feeds"): self.set_latest("feeds", msg)
         return self.q("SELECT max(id) AS i FROM events")[0]["i"]
 
-    LATEST_EVERY_S = 1.0
+    FLUSH_S = 2.0
     HIST_EVERY_S, HIST_KEEP_S = 5.0, 24 * 3600      # one row per vehicle per 5 s, kept 24 h
 
     def _hist(self, vid, ts, vss):
         if not vid or not isinstance(vss, dict) or not vss: return
         if ts - self._last_hist.get(vid, 0) < self.HIST_EVERY_S: return
         self._last_hist[vid] = ts; self._hist_n += 1
-        self.exec("INSERT INTO telemetry(ts,vehicle_id,vss) VALUES(?,?,?)", (ts, vid, json.dumps(vss)))
-        if self._hist_n % 2000 == 0: self.exec("DELETE FROM telemetry WHERE ts<?", (time.time() - self.HIST_KEEP_S,))
+        self._hist_buf.append((ts, vid, json.dumps(vss)))
+
+    def flush(self):
+        """Write buffered latest + history rows with one executemany each (one network round-trip, not one per message)."""
+        with self.lock:
+            pend, buf, self._pending, self._hist_buf, self._last_flush = self._pending, self._hist_buf, {}, [], time.time()
+            now = time.time()
+            if self.redis is not None:
+                for k, m in pend.items(): self.redis.set(f"quantara:{k}", json.dumps(m), ex=3600)
+            if pend:
+                up = ("INSERT INTO latest VALUES(%s,%s,%s) ON CONFLICT(k) DO UPDATE SET ts=excluded.ts,payload=excluded.payload" if self.pg
+                      else "INSERT OR REPLACE INTO latest VALUES(?,?,?)")
+                self._many(up, [(k, now, json.dumps(m)) for k, m in pend.items()])
+            if buf:
+                self._many("INSERT INTO telemetry(ts,vehicle_id,vss) VALUES(%s,%s,%s)" if self.pg else "INSERT INTO telemetry(ts,vehicle_id,vss) VALUES(?,?,?)", buf)
+                if self._hist_n % 2000 < len(buf): self.exec("DELETE FROM telemetry WHERE ts<?", (now - self.HIST_KEEP_S,))
+
+    def _many(self, sql, rows):
+        if self.pg:
+            with self.c.cursor() as cur: cur.executemany(sql, rows)
+        else: self.c.executemany(sql, rows)
 
     def history(self, vehicle, names=None, since=0.0, limit=5000):
         """{signal: [[ts, value], ...]} oldest first for one vehicle."""
