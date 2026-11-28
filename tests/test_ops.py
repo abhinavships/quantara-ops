@@ -293,3 +293,28 @@ def test_parse_users_accepts_json_base64_and_rejects_garbage():
     assert parse_users(base64.b64encode(j.encode()).decode()) == USERS
     for bad in ("", "{}", "nope", "[1]", '{"a": 1}'):
         with pytest.raises(ValueError, match="OPS_USERS"): parse_users(bad)
+
+
+def test_inject_script_publishes_to_control_topic_and_guards(monkeypatch):
+    import importlib.util, pathlib
+    from quantara_core import bus as B
+    spec = importlib.util.spec_from_file_location("inj", pathlib.Path(__file__).resolve().parent.parent / "scripts" / "inject.py")
+    inj = importlib.util.module_from_spec(spec); spec.loader.exec_module(inj)
+    monkeypatch.setenv("TOPIC_PREFIX", "quantara_"); monkeypatch.setenv("SANDBOX", "1")
+    b = B.MemBus(); inj.inject(b, "breakdown", ["V000"])
+    assert b.log["quantara_control.inject"] == [(None, {"scenario": "breakdown", "vehicles": ["V000"]})]
+    with pytest.raises(SystemExit): inj.inject(b, "nope")
+    monkeypatch.setenv("SANDBOX", "0")
+    with pytest.raises(SystemExit): inj.inject(b, "clear")
+
+
+def test_overview_aggregates_and_is_vehicle_scoped(env):
+    now = time.time()
+    env.feed("cloud.escalations", {**esc("V1", "i1"), "ts": now})
+    env.feed("cloud.escalations", {**esc("V2", "i2"), "ts": now})
+    env.feed("cloud.twin", {"vehicle_id": "V1", "incident_id": "i1", "final_cause": "pump", "ts": now})
+    o = env.c.get("/api/overview", headers=env.hdr("tech")).json()
+    assert o["incidents"] == 2 and o["by_cause"] == {"unknown": 2} and o["by_reason"] == {"unattributed": 2}
+    assert o["by_verdict"] == {"pump": 1} and sum(o["per_minute"]) == 2 and len(o["per_minute"]) == 30
+    v = env.c.get("/api/overview", headers=env.hdr("viewer")).json()      # viewer only sees V1
+    assert v["incidents"] == 1

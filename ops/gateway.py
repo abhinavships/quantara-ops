@@ -135,6 +135,31 @@ def create_app(store, bus, auth: Auth, sandbox=None, clock=time.time, read_rate=
         return {"edge": f.get("edge_counters"), "incidents": cnt("cloud.escalations") + cnt("cloud.security"),
                 "commands": cnt("commands.out"), "dlq": cnt("dlq"), "quarantine": cnt("quarantine"), "ts": f.get("ts")}
 
+    @app.get("/api/overview")
+    async def overview(request: Request):
+        """Aggregates for the dashboard (same panels as grafana/dashboard.json). Scoped to the caller's vehicles."""
+        c = await guard(request, "read")
+        ev = lambda t, **k: store.events(t, vehicles=scoped(c), limit=5000, **k)
+        hist = lambda xs: dict(sorted(((str(k), xs.count(k)) for k in set(xs)), key=lambda kv: -kv[1]))
+        esc = ev(["cloud.escalations", "cloud.security"])
+        twin = ev(["cloud.twin"])
+        latest = {}
+        for e in ev(["cloud.ota"], kind="rollout_status"): latest[e["payload"]["id"]] = e["payload"]
+        now = clock(); buckets = [0] * 30                       # incidents per minute, last 30 min
+        for e in esc:
+            age = int((now - (e["ts"] or 0)) // 60)
+            if 0 <= age < 30: buckets[29 - age] += 1
+        feeds = store.get_latest("feeds") or {}
+        return {"edge": feeds.get("edge_counters"), "ts": feeds.get("ts"), "incidents": len(esc),
+                "security": sum(1 for e in esc if e["topic"] == "cloud.security"),
+                "by_cause": hist([(e["payload"].get("incident") or {}).get("cause") or "unknown" for e in esc]),
+                "by_reason": hist([r for e in esc for r in (e["payload"].get("reasons") or [])]),
+                "by_verdict": hist([e["payload"].get("final_cause") or "unknown" for e in twin]),
+                "commands": len(ev(["commands.out"])), "dlq": len(ev(["dlq"])), "quarantine": len(ev(["quarantine"])),
+                "rollouts": {"applied": sum(r.get("applied", 0) for r in latest.values()),
+                             "failed": sum(r.get("failed", 0) for r in latest.values()), "count": len(latest)},
+                "per_minute": buckets, "vehicles_live": len(store.q("SELECT k FROM latest WHERE k LIKE ?", ("vss:%",)))}
+
     @app.get("/api/events")
     async def events(request: Request, after: int = 0, topic: str = ""):
         c = await guard(request, "read")
