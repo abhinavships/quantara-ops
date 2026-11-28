@@ -24,6 +24,11 @@ Users can be scoped to vehicles (`vehicles: ["V000"]` or `["*"]`).
 | POST /api/rulebook/approve `{event_id, vehicles?}` | rulebook | start staged rollout of a proposed edge rulebook |
 | POST /api/rollout/tick `{rollout}` | rollout | advance a staged rollout |
 | POST /api/inject `{scenario, vehicles?}` | inject | publish a sandbox scenario (SANDBOX=1 only) |
+| POST /api/situation `{text, params?}` | inject | free-text world event; the cloud model plans the response (SANDBOX=1) |
+| GET /api/plans | read | model plans: summary, risk, validated actions, `source` llm/fallback, `needs_approval` |
+| GET /api/notifications | read | cluster/app notifications produced by plans |
+| POST /api/replay/save `{vehicle, note?}` | replay | freeze last 30 min of signals + incidents |
+| GET /api/replays, /api/replays/{id} | read | saved scenes (list / full series for playback) |
 | WS /ws | read | send `{"token": "..."}` first; then a stream of `{id, topic, vehicle_id, payload}` for every new event |
 
 Scenarios accepted by `/api/inject`: see `docs/SCENARIOS.md`.

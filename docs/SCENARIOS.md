@@ -22,9 +22,18 @@ on top of Bayesian ranking. Inject via `POST /api/inject {"scenario": "...", "ve
 | Link loss | `link_down`, `link_up` | store-and-forward | - | done |
 | Reset | `clear` | - | - | done |
 
-## Not built yet (be honest with the UI team)
-Highway-closure detour re-routing for many cars; service-centre overload triage queue (parts shortage); warranty/batch forecasting;
-durability and regional-calibration twins; malware patch builder + fleet-wide patch rollout (OTA staging exists, patch building does not);
-virtual OTA test on twins; targeted recall list; proactive owner alerts as a first-class event; 30-minute scene replay button
-(raw data exists: `GET /api/history?vehicle=..&minutes=30`, the replay UI and a "save" event do not).
-New scenarios follow one pattern: add a DTC/intrusion rule in `quantara-ingest/edge/dtc.py`, a name in `sim/fleet.py` `DIAG_FAULTS`, a cause in `quantara-services/svc/rca.py` `CAUSES`, a reference line in `svc/brain.py` `DTC_REF`.
+## Model-driven situations (no scripted scenario)
+`POST /api/situation {"text": "...", "params": {...}}` (or `python scripts/inject_gw.py situation "..." '{"energy_penalty":0.15}'`).
+The cloud `fleet` planner (`quantara-services/svc/fleet.py`) gives Gemini the live fleet (SoC, position, incidents + triage), stations and a closed
+action vocabulary; it returns a plan which is validated against real vehicle and station ids and published as `cloud.fleet kind=plan`
+(`GET /api/plans`) plus driver notifications (`GET /api/notifications`). Recalls, patches and quality alerts are proposals (`needs_approval`).
+Examples to try: "A crash closes the highway; traffic is diverted onto a mountain road adding 60 km and 800 m of climb" (params energy_penalty 0.15),
+"Coolant pump supply delayed 8 weeks, 3000 vehicles waiting, service bays handle 200 a week; triage by safety", "Forecast battery warranty claims by
+region and batch from current P0A80 trends", "Possible malware found on the CAN network of the V0xx cluster: propose patch, recall and notifications",
+"Faulty OTA 3.2 caused false battery warnings after reboot; stage the rollout and flag affected cars", "Proactive alerts for cars likely to break down this week".
+Only physical effect the simulator applies: `energy_penalty` (fraction of SoC removed from every car). Everything else is the model's job.
+The 30-minute scene button: `POST /api/replay/save`, then `GET /api/replays/{id}` (UI plays it back at 7.5x = 4 min).
+
+## Still not covered
+Durability/fatigue twin and regional calibration twin have no physics model (the planner can only discuss them); no signed patch artifact is built
+(patch_proposal is text for a human); the simulator has no road geometry, so detour effects are the single energy_penalty number.

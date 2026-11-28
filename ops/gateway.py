@@ -16,7 +16,9 @@ from .audit import AuditLog
 from .auth import Auth, AuthError, RateLimiter
 
 SCENARIOS = ("breakdown", "grid_outage", "degradation", "cyber_flood", "cyber_fuzz", "cyber_spoof", "cyber_replay",
-             "cal_tamper", "telemetry_mismatch", "pump_recover", "clear", "link_down", "link_up")
+             "cal_tamper", "telemetry_mismatch", "pump_recover", "clear", "link_down", "link_up",
+             "contactor_stuck", "dcdc_fail", "bms_comm_lost", "battery_degraded", "obd_dongle", "ecu_busoff", "tcu_intrusion",
+             "rogue_charger", "adas_spoof")
 UI = pathlib.Path(__file__).resolve().parent.parent / "ui" / "index.html"
 
 
@@ -256,6 +258,62 @@ def create_app(store, bus, auth: Auth, sandbox=None, clock=time.time, read_rate=
         audit.append(c["sub"], "inject", {"scenario": b["scenario"], "vehicles": vs})
         pub("control.inject", {"scenario": b["scenario"], "vehicles": vs or None})
         return {"ok": True}
+
+    @app.post("/api/situation")
+    async def situation(request: Request):
+        """Free-text world event for the cloud model to plan: {"text": "...", "params": {"energy_penalty": 0.15, ...}}."""
+        c = await guard(request, "inject", write=True); b = await body(request)
+        if not sandbox: raise AuthError(403, "injection disabled outside SANDBOX=1")
+        text = str(b.get("text", "")).strip()[:600]
+        if len(text) < 5: raise AuthError(400, "text required")
+        params = b.get("params") if isinstance(b.get("params"), dict) else {}
+        sid = f"sit-{int(clock())}"
+        audit.append(c["sub"], "situation", {"id": sid, "text": text})
+        pub("control.inject", {"scenario": "situation", "id": sid, "text": text, "params": params, "ts": clock()})
+        return {"ok": True, "id": sid}
+
+    @app.get("/api/plans")
+    async def plans(request: Request):
+        """Cloud-model plans for situations (newest last): summary, risk, validated actions, source llm|fallback."""
+        await guard(request, "read")
+        return [{"event_id": e["id"], **e["payload"]} for e in store.events(["cloud.fleet"], kind="plan", limit=30)]
+
+    @app.get("/api/notifications")
+    async def notifications(request: Request):
+        c = await guard(request, "read")
+        return [e["payload"] for e in store.events(["notify.out"], kind="notification", vehicles=scoped(c), limit=100)]
+
+    @app.post("/api/replay/save")
+    async def replay_save(request: Request):
+        """The 'store last 30 min' button: freeze a vehicle's last 30 min of signals + its incidents as a replayable scene."""
+        c = await guard(request, "replay", write=True); b = await body(request)
+        vid = str(b.get("vehicle", ""))
+        if not vid or not auth.sees(c, vid): raise AuthError(403, "vehicle not in scope")
+        now = clock()
+        series = store.history(vid, None, now - 1800)
+        if not series: raise AuthError(404, "no recent data for that vehicle")
+        inc = [{"ts": e["ts"], "topic": e["topic"], "payload": e["payload"]}
+               for e in store.events(["cloud.escalations", "cloud.security", "cloud.twin", "cloud.rca"], vehicles=[vid], limit=200)
+               if (e["ts"] or 0) >= now - 1800]
+        audit.append(c["sub"], "replay_save", {"vehicle": vid})
+        eid = store.add_event("replay", {"kind": "replay", "vehicle_id": vid, "ts": now, "note": str(b.get("note", ""))[:200],
+                                         "from": now - 1800, "to": now, "series": series, "events": inc})
+        return {"ok": True, "replay_id": eid}
+
+    @app.get("/api/replays")
+    async def replays(request: Request):
+        c = await guard(request, "read")
+        return [{"replay_id": e["id"], "vehicle_id": e["vehicle_id"], "ts": e["ts"], "note": e["payload"].get("note"),
+                 "signals": len(e["payload"].get("series", {})), "events": len(e["payload"].get("events", []))}
+                for e in store.events(["replay"], vehicles=scoped(c), limit=50)]
+
+    @app.get("/api/replays/{replay_id}")
+    async def replay_get(request: Request, replay_id: int):
+        """Full scene; the UI plays it back (4 min of wall clock for 30 min of data is a UI speed-up of 7.5x)."""
+        c = await guard(request, "read")
+        e = store.event(replay_id)
+        if not e or e["topic"] != "replay" or not auth.sees(c, e["vehicle_id"]): raise AuthError(404, "not found")
+        return {"replay_id": e["id"], **e["payload"]}
 
     # ---------------- websocket ----------------
     @app.websocket("/ws")

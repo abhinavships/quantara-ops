@@ -10,8 +10,8 @@ from collections import OrderedDict
 
 import jwt
 
-ROLES = {"viewer": {"read"}, "technician": {"read", "feedback", "inject"}, "owner": {"read", "consent"},
-         "oem": {"read", "oem"}, "admin": {"read", "feedback", "inject", "consent", "oem", "rulebook", "rollout", "audit"}}
+ROLES = {"viewer": {"read"}, "technician": {"read", "feedback", "inject", "replay"}, "owner": {"read", "consent", "replay"},
+         "oem": {"read", "oem"}, "admin": {"read", "feedback", "inject", "replay", "consent", "oem", "rulebook", "rollout", "audit"}}
 SKEW_S, NONCE_TTL_S, JWT_TTL_S = 60, 180, 900
 
 
