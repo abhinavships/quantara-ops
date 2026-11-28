@@ -318,3 +318,17 @@ def test_overview_aggregates_and_is_vehicle_scoped(env):
     assert o["by_verdict"] == {"pump": 1} and sum(o["per_minute"]) == 2 and len(o["per_minute"]) == 30
     v = env.c.get("/api/overview", headers=env.hdr("viewer")).json()      # viewer only sees V1
     assert v["incidents"] == 1
+
+
+def test_history_and_signals_are_stored_downsampled_and_scoped(env):
+    now = time.time()
+    for i in range(12):                                   # 12 s of 1 Hz samples for V1 and V2 -> ~3 rows each (5 s downsample)
+        for v in ("V1", "V2"):
+            env.feed("vss.enriched", {"kind": "vss", "vehicle_id": v, "ts": now - 12 + i,
+                                      "vss": {"Vehicle.Speed": 50 + i, "Vehicle.Acceleration.Vertical": 0.1 * i}})
+    h = env.c.get("/api/history?vehicle=V1&signals=Vehicle.Speed&minutes=5", headers=env.hdr("tech")).json()
+    pts = h["series"]["Vehicle.Speed"]
+    assert 2 <= len(pts) <= 4 and pts == sorted(pts) and "Vehicle.Acceleration.Vertical" not in h["series"]
+    assert env.c.get("/api/history?vehicle=V2", headers=env.hdr("viewer")).status_code == 403   # viewer scoped to V1
+    s = env.c.get("/api/signals", headers=env.hdr("viewer")).json()
+    assert s["vehicles"] == ["V1"] and "Vehicle.Acceleration.Vertical" in s["signals"]

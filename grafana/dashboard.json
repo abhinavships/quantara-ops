@@ -264,7 +264,380 @@
      "rawSql": "SELECT to_timestamp(ts) AS time, seq, actor, action, detail FROM audit ORDER BY seq DESC LIMIT 20"
     }
    ]
+  },
+  {
+   "id": 10,
+   "title": "Vehicle speed (km/h)",
+   "type": "timeseries",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 28,
+    "w": 12,
+    "h": 8
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "format": "time_series",
+     "rawQuery": true,
+     "editorMode": "code",
+     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Vehicle.Speed')::float AS \"Vehicle.Speed\" FROM telemetry WHERE vehicle_id='${vehicle}' AND $__timeFilter(to_timestamp(ts)) ORDER BY ts"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "velocitykmh"
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 11,
+   "title": "Wheel speeds (km/h)",
+   "type": "timeseries",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 12,
+    "y": 28,
+    "w": 12,
+    "h": 8
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "format": "time_series",
+     "rawQuery": true,
+     "editorMode": "code",
+     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Vehicle.Chassis.Axle.Row1.Wheel.Left.Speed')::float AS \"FL\" FROM telemetry WHERE vehicle_id='${vehicle}' AND $__timeFilter(to_timestamp(ts)) ORDER BY ts"
+    },
+    {
+     "refId": "B",
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "format": "time_series",
+     "rawQuery": true,
+     "editorMode": "code",
+     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Vehicle.Chassis.Axle.Row1.Wheel.Right.Speed')::float AS \"FR\" FROM telemetry WHERE vehicle_id='${vehicle}' AND $__timeFilter(to_timestamp(ts)) ORDER BY ts"
+    },
+    {
+     "refId": "C",
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "format": "time_series",
+     "rawQuery": true,
+     "editorMode": "code",
+     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Vehicle.Chassis.Axle.Row2.Wheel.Left.Speed')::float AS \"RL\" FROM telemetry WHERE vehicle_id='${vehicle}' AND $__timeFilter(to_timestamp(ts)) ORDER BY ts"
+    },
+    {
+     "refId": "D",
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "format": "time_series",
+     "rawQuery": true,
+     "editorMode": "code",
+     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Vehicle.Chassis.Axle.Row2.Wheel.Right.Speed')::float AS \"RR\" FROM telemetry WHERE vehicle_id='${vehicle}' AND $__timeFilter(to_timestamp(ts)) ORDER BY ts"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "velocitykmh"
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 12,
+   "title": "Acceleration (m/s\u00b2, g for lateral)",
+   "type": "timeseries",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 36,
+    "w": 12,
+    "h": 8
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "format": "time_series",
+     "rawQuery": true,
+     "editorMode": "code",
+     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Vehicle.Acceleration.Longitudinal')::float AS \"longitudinal\" FROM telemetry WHERE vehicle_id='${vehicle}' AND $__timeFilter(to_timestamp(ts)) ORDER BY ts"
+    },
+    {
+     "refId": "B",
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "format": "time_series",
+     "rawQuery": true,
+     "editorMode": "code",
+     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Vehicle.Acceleration.Lateral')::float AS \"lateral (g)\" FROM telemetry WHERE vehicle_id='${vehicle}' AND $__timeFilter(to_timestamp(ts)) ORDER BY ts"
+    },
+    {
+     "refId": "C",
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "format": "time_series",
+     "rawQuery": true,
+     "editorMode": "code",
+     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Vehicle.Acceleration.Vertical')::float AS \"vertical (bumps)\" FROM telemetry WHERE vehicle_id='${vehicle}' AND $__timeFilter(to_timestamp(ts)) ORDER BY ts"
+    }
+   ]
+  },
+  {
+   "id": 13,
+   "title": "Suspension travel (mm)",
+   "type": "timeseries",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 12,
+    "y": 36,
+    "w": 12,
+    "h": 8
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "format": "time_series",
+     "rawQuery": true,
+     "editorMode": "code",
+     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Vehicle.Chassis.Axle.Row1.Wheel.Left.Suspension.Travel')::float AS \"FL\" FROM telemetry WHERE vehicle_id='${vehicle}' AND $__timeFilter(to_timestamp(ts)) ORDER BY ts"
+    },
+    {
+     "refId": "B",
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "format": "time_series",
+     "rawQuery": true,
+     "editorMode": "code",
+     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Vehicle.Chassis.Axle.Row1.Wheel.Right.Suspension.Travel')::float AS \"FR\" FROM telemetry WHERE vehicle_id='${vehicle}' AND $__timeFilter(to_timestamp(ts)) ORDER BY ts"
+    },
+    {
+     "refId": "C",
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "format": "time_series",
+     "rawQuery": true,
+     "editorMode": "code",
+     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Vehicle.Chassis.Axle.Row2.Wheel.Left.Suspension.Travel')::float AS \"RL\" FROM telemetry WHERE vehicle_id='${vehicle}' AND $__timeFilter(to_timestamp(ts)) ORDER BY ts"
+    },
+    {
+     "refId": "D",
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "format": "time_series",
+     "rawQuery": true,
+     "editorMode": "code",
+     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Vehicle.Chassis.Axle.Row2.Wheel.Right.Suspension.Travel')::float AS \"RR\" FROM telemetry WHERE vehicle_id='${vehicle}' AND $__timeFilter(to_timestamp(ts)) ORDER BY ts"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "lengthmm"
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 14,
+   "title": "Steering angle (deg)",
+   "type": "timeseries",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 44,
+    "w": 8,
+    "h": 7
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "format": "time_series",
+     "rawQuery": true,
+     "editorMode": "code",
+     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Vehicle.Chassis.SteeringWheel.Angle')::float AS \"Vehicle.Chassis.SteeringWheel.Angle\" FROM telemetry WHERE vehicle_id='${vehicle}' AND $__timeFilter(to_timestamp(ts)) ORDER BY ts"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "degree"
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 15,
+   "title": "Battery temperature (\u00b0C) and charge",
+   "type": "timeseries",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 8,
+    "y": 44,
+    "w": 8,
+    "h": 7
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "format": "time_series",
+     "rawQuery": true,
+     "editorMode": "code",
+     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Vehicle.Powertrain.TractionBattery.Temperature.Average')::float AS \"temp \u00b0C\" FROM telemetry WHERE vehicle_id='${vehicle}' AND $__timeFilter(to_timestamp(ts)) ORDER BY ts"
+    },
+    {
+     "refId": "B",
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "format": "time_series",
+     "rawQuery": true,
+     "editorMode": "code",
+     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Vehicle.Powertrain.TractionBattery.StateOfCharge.Current')::float AS \"state of charge (0-1)\" FROM telemetry WHERE vehicle_id='${vehicle}' AND $__timeFilter(to_timestamp(ts)) ORDER BY ts"
+    }
+   ]
+  },
+  {
+   "id": 16,
+   "title": "Lamps and gear (0/1, gear 0=P 3=D)",
+   "type": "state-timeline",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 16,
+    "y": 44,
+    "w": 8,
+    "h": 7
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "format": "time_series",
+     "rawQuery": true,
+     "editorMode": "code",
+     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Vehicle.Body.Lights.Brake.IsActive')::float AS \"brake lamp\" FROM telemetry WHERE vehicle_id='${vehicle}' AND $__timeFilter(to_timestamp(ts)) ORDER BY ts"
+    },
+    {
+     "refId": "B",
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "format": "time_series",
+     "rawQuery": true,
+     "editorMode": "code",
+     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Vehicle.Body.Lights.Beam.Low.IsOn')::float AS \"low beam\" FROM telemetry WHERE vehicle_id='${vehicle}' AND $__timeFilter(to_timestamp(ts)) ORDER BY ts"
+    },
+    {
+     "refId": "C",
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "format": "time_series",
+     "rawQuery": true,
+     "editorMode": "code",
+     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Vehicle.Body.Lights.Hazard.IsSignaling')::float AS \"hazard\" FROM telemetry WHERE vehicle_id='${vehicle}' AND $__timeFilter(to_timestamp(ts)) ORDER BY ts"
+    },
+    {
+     "refId": "D",
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "format": "time_series",
+     "rawQuery": true,
+     "editorMode": "code",
+     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Vehicle.Powertrain.Transmission.CurrentGear')::float AS \"gear\" FROM telemetry WHERE vehicle_id='${vehicle}' AND $__timeFilter(to_timestamp(ts)) ORDER BY ts"
+    }
+   ]
   }
  ],
- "description": "All data is synthetic. Requires the ops store on Postgres (DATABASE_URL)."
+ "description": "All data is synthetic. Requires the ops store on Postgres (DATABASE_URL).",
+ "templating": {
+  "list": [
+   {
+    "name": "vehicle",
+    "label": "Vehicle",
+    "type": "query",
+    "datasource": {
+     "type": "grafana-postgresql-datasource",
+     "uid": "quantara-pg"
+    },
+    "refresh": 2,
+    "sort": 1,
+    "query": "SELECT DISTINCT vehicle_id FROM telemetry ORDER BY 1",
+    "definition": "SELECT DISTINCT vehicle_id FROM telemetry ORDER BY 1",
+    "current": {
+     "text": "V000",
+     "value": "V000"
+    }
+   }
+  ]
+ }
 }

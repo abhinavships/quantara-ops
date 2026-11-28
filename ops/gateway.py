@@ -135,6 +135,23 @@ def create_app(store, bus, auth: Auth, sandbox=None, clock=time.time, read_rate=
         return {"edge": f.get("edge_counters"), "incidents": cnt("cloud.escalations") + cnt("cloud.security"),
                 "commands": cnt("commands.out"), "dlq": cnt("dlq"), "quarantine": cnt("quarantine"), "ts": f.get("ts")}
 
+    @app.get("/api/history")
+    async def history(request: Request, vehicle: str, signals: str = "", minutes: int = 30):
+        """Time series for one vehicle: ?vehicle=V000&signals=Vehicle.Speed,Vehicle.Acceleration.Vertical&minutes=30"""
+        c = await guard(request, "read")
+        if "*" not in scoped(c) and vehicle not in scoped(c): raise AuthError(403, "vehicle not in scope")
+        names = {x for x in signals.split(",") if x} or None
+        return {"vehicle": vehicle, "series": store.history(vehicle, names, clock() - max(1, min(minutes, 1440)) * 60)}
+
+    @app.get("/api/signals")
+    async def signal_names(request: Request):
+        """VSS signal names currently reported, per the latest sample of any in-scope vehicle."""
+        c = await guard(request, "read")
+        rows = store.q("SELECT k FROM latest WHERE k LIKE ?", ("vss:%",))
+        vs = [r["k"][4:] for r in rows if "*" in scoped(c) or r["k"][4:] in scoped(c)]
+        names = sorted({k for v in vs for k in ((store.get_latest(f"vss:{v}") or {}).get("vss") or {})})
+        return {"vehicles": sorted(vs), "signals": names}
+
     @app.get("/api/overview")
     async def overview(request: Request):
         """Aggregates for the dashboard (same panels as grafana/dashboard.json). Scoped to the caller's vehicles."""

@@ -9,6 +9,8 @@ SQLITE = """
 CREATE TABLE IF NOT EXISTS events(id INTEGER PRIMARY KEY AUTOINCREMENT, ts REAL, topic TEXT, kind TEXT, vehicle_id TEXT, payload TEXT);
 CREATE INDEX IF NOT EXISTS ev_v ON events(vehicle_id, id);
 CREATE TABLE IF NOT EXISTS latest(k TEXT PRIMARY KEY, ts REAL, payload TEXT);
+CREATE TABLE IF NOT EXISTS telemetry(ts REAL, vehicle_id TEXT, vss TEXT);
+CREATE INDEX IF NOT EXISTS tel_v ON telemetry(vehicle_id, ts);
 CREATE TABLE IF NOT EXISTS audit(seq INTEGER PRIMARY KEY, ts REAL, actor TEXT, action TEXT, detail TEXT, prev TEXT, hash TEXT);
 CREATE TRIGGER IF NOT EXISTS audit_no_update BEFORE UPDATE ON audit BEGIN SELECT RAISE(ABORT,'audit is append-only'); END;
 CREATE TRIGGER IF NOT EXISTS audit_no_delete BEFORE DELETE ON audit BEGIN SELECT RAISE(ABORT,'audit is append-only'); END;
@@ -17,6 +19,8 @@ PG = """
 CREATE TABLE IF NOT EXISTS events(id BIGSERIAL PRIMARY KEY, ts DOUBLE PRECISION, topic TEXT, kind TEXT, vehicle_id TEXT, payload JSONB);
 CREATE INDEX IF NOT EXISTS ev_v ON events(vehicle_id, id);
 CREATE TABLE IF NOT EXISTS latest(k TEXT PRIMARY KEY, ts DOUBLE PRECISION, payload JSONB);
+CREATE TABLE IF NOT EXISTS telemetry(ts DOUBLE PRECISION, vehicle_id TEXT, vss JSONB);
+CREATE INDEX IF NOT EXISTS tel_v ON telemetry(vehicle_id, ts);
 CREATE TABLE IF NOT EXISTS audit(seq BIGINT PRIMARY KEY, ts DOUBLE PRECISION, actor TEXT, action TEXT, detail TEXT, prev TEXT, hash TEXT);
 CREATE OR REPLACE FUNCTION audit_guard() RETURNS trigger AS $$ BEGIN RAISE EXCEPTION 'audit is append-only'; END; $$ LANGUAGE plpgsql;
 DROP TRIGGER IF EXISTS audit_ro ON audit;
@@ -27,6 +31,7 @@ CREATE TRIGGER audit_ro BEFORE UPDATE OR DELETE ON audit FOR EACH ROW EXECUTE FU
 class Store:
     def __init__(self, dsn=None, redis=None):
         self.lock, self.redis, self.pg = threading.RLock(), redis, bool(dsn and dsn.startswith("postgres"))
+        self._last_hist, self._hist_n = {}, 0
         if self.pg:
             import psycopg
             self.c = psycopg.connect(dsn, autocommit=True)
@@ -65,12 +70,31 @@ class Store:
         vid = msg.get("vehicle_id") if isinstance(msg, dict) else None
         kind = msg.get("kind") if isinstance(msg, dict) else None
         ts = msg.get("ts") if isinstance(msg, dict) and isinstance(msg.get("ts"), (int, float)) else time.time()
-        if topic == "vss.enriched":                       # high-rate: keep only the latest per vehicle
-            self.set_latest(f"vss:{vid}", msg); return None
+        if topic == "vss.enriched":                       # high-rate: latest per vehicle + a downsampled history
+            self.set_latest(f"vss:{vid}", msg); self._hist(vid, ts, msg.get("vss")); return None
         self.exec("INSERT INTO events(ts,topic,kind,vehicle_id,payload) VALUES(?,?,?,?,?)",
                   (ts, topic, kind, vid, json.dumps(msg)))
         if kind == "feeds" or (topic == "cloud.fleet" and kind == "feeds"): self.set_latest("feeds", msg)
         return self.q("SELECT max(id) AS i FROM events")[0]["i"]
+
+    HIST_EVERY_S, HIST_KEEP_S = 5.0, 24 * 3600      # one row per vehicle per 5 s, kept 24 h
+
+    def _hist(self, vid, ts, vss):
+        if not vid or not isinstance(vss, dict) or not vss: return
+        if ts - self._last_hist.get(vid, 0) < self.HIST_EVERY_S: return
+        self._last_hist[vid] = ts; self._hist_n += 1
+        self.exec("INSERT INTO telemetry(ts,vehicle_id,vss) VALUES(?,?,?)", (ts, vid, json.dumps(vss)))
+        if self._hist_n % 2000 == 0: self.exec("DELETE FROM telemetry WHERE ts<?", (time.time() - self.HIST_KEEP_S,))
+
+    def history(self, vehicle, names=None, since=0.0, limit=5000):
+        """{signal: [[ts, value], ...]} oldest first for one vehicle."""
+        rows = self.q("SELECT ts, vss FROM telemetry WHERE vehicle_id=? AND ts>? ORDER BY ts DESC LIMIT ?", (vehicle, since, limit))
+        out = {}
+        for r in reversed(rows):
+            v = r["vss"] if isinstance(r["vss"], dict) else json.loads(r["vss"])
+            for k, x in v.items():
+                if names is None or k in names: out.setdefault(k, []).append([r["ts"], x])
+        return out
 
     def events(self, topics=None, after=0, vehicles=None, limit=200, kind=None):
         sql, p = "SELECT * FROM events WHERE id>?", [after]

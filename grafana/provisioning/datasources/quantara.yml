@@ -6,5 +6,5 @@ datasources:
     access: proxy
     url: ${PG_HOST}:5432
     user: ${PG_USER}
-    jsonData: {database: quantara, sslmode: require, postgresVersion: 1500}
+    jsonData: {database: ${PG_DATABASE}, sslmode: require, postgresVersion: 1500}
     secureJsonData: {password: "${PG_PASSWORD}"}
