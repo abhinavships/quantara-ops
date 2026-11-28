@@ -67,7 +67,7 @@ services:
     environment: {<<: *kafka, ROLE: rca}
   svc-twin:
     <<: *svc
-    environment: {<<: *kafka, ROLE: twin}
+    environment: {<<: *kafka, ROLE: "twin+fleet"}   # fleet = model-driven situation planner (shares the twin process)
   svc-route:
     <<: *svc
     environment: {<<: *kafka, ROLE: route}
