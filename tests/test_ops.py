@@ -373,3 +373,13 @@ def test_situation_params_are_whitelisted_and_clamped(env):
     assert m["params"]["energy_penalty"] == 0.5 and m["params"]["detour_km"] == 60.0 and len(m["params"]["closed_stations"]) == 20
     assert env.post("tech", "/api/situation", {"text": "detour on a mountain road", "params": {"rm_rf": 1}}).status_code == 400
     assert env.post("tech", "/api/situation", {"text": "detour on a mountain road", "params": {"energy_penalty": "high"}}).status_code == 400
+
+
+def test_readyz_reports_db_audit_and_feed_age(env):
+    r = env.c.get("/readyz")
+    assert r.status_code == 200 and r.json()["ready"] and r.json()["checks"]["feed_age_s"] is None
+    env.feed("cloud.fleet", {"kind": "feeds", "ts": time.time() - 5})
+    assert 4 <= env.c.get("/readyz").json()["checks"]["feed_age_s"] < 60
+    env.store.q = lambda *a, **k: (_ for _ in ()).throw(RuntimeError("db down"))
+    r = env.c.get("/readyz")
+    assert r.status_code == 503 and r.json()["checks"]["db"] is False

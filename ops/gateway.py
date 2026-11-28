@@ -84,6 +84,18 @@ def create_app(store, bus, auth: Auth, sandbox=None, clock=time.time, read_rate=
     @app.get("/healthz")
     async def healthz(): return {"ok": True, "audit": audit.verify()["ok"]}
 
+    @app.get("/readyz")
+    async def readyz():
+        """Readiness probe: database reachable and audit chain intact. feed_age_s shows how stale the edge feed is (None = never seen)."""
+        checks = {}
+        try: store.q("SELECT 1 AS x"); checks["db"] = True
+        except Exception: checks["db"] = False
+        checks["audit"] = checks["db"] and audit.verify()["ok"]
+        f = (store.get_latest("feeds") or {}) if checks["db"] else {}
+        checks["feed_age_s"] = round(clock() - f["ts"], 1) if isinstance(f.get("ts"), (int, float)) else None
+        ready = checks["db"] and checks["audit"]
+        return JSONResponse({"ready": ready, "sandbox": sandbox, "checks": checks}, status_code=200 if ready else 503)
+
     @app.get("/")
     async def ui(): return FileResponse(UI)
 
