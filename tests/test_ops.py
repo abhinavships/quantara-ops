@@ -383,3 +383,17 @@ def test_readyz_reports_db_audit_and_feed_age(env):
     env.store.q = lambda *a, **k: (_ for _ in ()).throw(RuntimeError("db down"))
     r = env.c.get("/readyz")
     assert r.status_code == 503 and r.json()["checks"]["db"] is False
+
+
+def test_replay_export_csv_and_scope(env):
+    now = time.time()
+    env.store.add_event("vss.enriched", {"vehicle_id": "V1", "ts": now - 60, "vss": {"Vehicle.Speed": 50, "Vehicle.Soc": 0.4}})
+    env.store.flush()
+    rid = env.post("owner1", "/api/replay/save", {"vehicle": "V1"}).json()["replay_id"]
+    r = env.c.get(f"/api/replays/{rid}/export", headers=env.hdr("owner1"))
+    lines = r.text.strip().splitlines()
+    assert r.status_code == 200 and r.headers["content-type"].startswith("text/csv") and "attachment" in r.headers["content-disposition"]
+    assert lines[0] == "signal,ts,value" and lines[1].startswith("Vehicle.Soc,") and lines[2].endswith(",50")
+    assert env.c.get(f"/api/replays/{rid}/export?fmt=json", headers=env.hdr("owner1")).json()["vehicle_id"] == "V1"
+    assert env.c.get(f"/api/replays/{rid}/export?fmt=xml", headers=env.hdr("owner1")).status_code == 400
+    assert env.c.get(f"/api/replays/{rid}/export", headers=env.hdr("owner2")).status_code == 404

@@ -8,7 +8,7 @@ import re
 import time
 
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, Response
 
 from quantara_core import config
 
@@ -343,6 +343,18 @@ def create_app(store, bus, auth: Auth, sandbox=None, clock=time.time, read_rate=
         e = store.event(replay_id)
         if not e or e["topic"] != "replay" or not auth.sees(c, e["vehicle_id"]): raise AuthError(404, "not found")
         return {"replay_id": e["id"], **e["payload"]}
+
+    @app.get("/api/replays/{replay_id}/export")
+    async def replay_export(request: Request, replay_id: int, fmt: str = "csv"):
+        """Download a saved scene for offline analysis: long-format CSV (signal,ts,value) or the full JSON."""
+        c = await guard(request, "read")
+        e = store.event(replay_id)
+        if not e or e["topic"] != "replay" or not auth.sees(c, e["vehicle_id"]): raise AuthError(404, "not found")
+        if fmt == "json": return {"replay_id": e["id"], **e["payload"]}
+        if fmt != "csv": raise AuthError(400, "fmt must be csv or json")
+        rows = ["signal,ts,value"] + [f"{name},{t},{v}" for name, pts in sorted(e["payload"].get("series", {}).items()) for t, v in pts]
+        return Response("\n".join(rows) + "\n", media_type="text/csv",
+                        headers={"content-disposition": f'attachment; filename="scene-{e["id"]}-{e["vehicle_id"]}.csv"'})
 
     # ---------------- websocket ----------------
     @app.websocket("/ws")
