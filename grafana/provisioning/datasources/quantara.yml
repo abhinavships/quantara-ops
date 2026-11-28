@@ -4,7 +4,11 @@ datasources:
     uid: quantara-pg
     type: grafana-postgresql-datasource
     access: proxy
-    url: ${PG_HOST}:5432
-    user: ${PG_USER}
-    jsonData: {database: ${PG_DATABASE}, sslmode: require, postgresVersion: 1500}
-    secureJsonData: {password: "${PG_PASSWORD}"}
+    url: "${PG_HOST}:5432"
+    user: "${PG_USER}"
+    jsonData:
+      database: "${PG_DATABASE}"
+      sslmode: require
+      postgresVersion: 1500
+    secureJsonData:
+      password: "${PG_PASSWORD}"
