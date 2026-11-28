@@ -1,0 +1,702 @@
+{
+ "uid": "quantara-s2",
+ "title": "2 \u00b7 Ecosystem failure: grid outage, charging stations offline",
+ "description": "Audience: OEM / charging operator and the driver. Inject: grid_outage",
+ "tags": [
+  "quantara",
+  "grid",
+  "oem",
+  "driver"
+ ],
+ "schemaVersion": 39,
+ "version": 1,
+ "refresh": "5s",
+ "time": {
+  "from": "now-30m",
+  "to": "now"
+ },
+ "timezone": "browser",
+ "editable": true,
+ "graphTooltip": 1,
+ "templating": {
+  "list": [
+   {
+    "name": "vehicle",
+    "label": "Vehicle",
+    "type": "query",
+    "datasource": {
+     "type": "grafana-postgresql-datasource",
+     "uid": "quantara-pg"
+    },
+    "refresh": 2,
+    "sort": 1,
+    "query": "SELECT DISTINCT vehicle_id FROM telemetry ORDER BY 1",
+    "definition": "SELECT DISTINCT vehicle_id FROM telemetry ORDER BY 1",
+    "current": {
+     "text": "V000",
+     "value": "V000"
+    }
+   }
+  ]
+ },
+ "panels": [
+  {
+   "id": 1,
+   "type": "row",
+   "title": "OEM / CHARGING OPERATOR: grid and stations",
+   "collapsed": false,
+   "gridPos": {
+    "x": 0,
+    "y": 0,
+    "w": 24,
+    "h": 1
+   },
+   "panels": []
+  },
+  {
+   "id": 2,
+   "type": "stat",
+   "title": "Stations online",
+   "description": "of 8",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 1,
+    "w": 4,
+    "h": 4
+   },
+   "fieldConfig": {
+    "defaults": {
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "red",
+        "value": null
+       },
+       {
+        "color": "yellow",
+        "value": 4
+       },
+       {
+        "color": "green",
+        "value": 7
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "values": false
+    },
+    "colorMode": "background",
+    "graphMode": "none",
+    "textMode": "value"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "editorMode": "code",
+     "format": "table",
+     "rawQuery": true,
+     "rawSql": "SELECT count(*) FILTER (WHERE (s->>'online')='true') AS online FROM (SELECT s FROM latest, jsonb_array_elements(payload->'grid'->'stations') s WHERE k='feeds') x",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 3,
+   "type": "stat",
+   "title": "Stations offline",
+   "description": "",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 4,
+    "y": 1,
+    "w": 4,
+    "h": 4
+   },
+   "fieldConfig": {
+    "defaults": {
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "green",
+        "value": null
+       },
+       {
+        "color": "red",
+        "value": 1
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "values": false
+    },
+    "colorMode": "background",
+    "graphMode": "none",
+    "textMode": "value"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "editorMode": "code",
+     "format": "table",
+     "rawQuery": true,
+     "rawSql": "SELECT count(*) FILTER (WHERE (s->>'online')='false') AS offline FROM (SELECT s FROM latest, jsonb_array_elements(payload->'grid'->'stations') s WHERE k='feeds') x",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 4,
+   "type": "stat",
+   "title": "Grid outage",
+   "description": "",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 8,
+    "y": 1,
+    "w": 4,
+    "h": 4
+   },
+   "fieldConfig": {
+    "defaults": {
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "green",
+        "value": null
+       },
+       {
+        "color": "red",
+        "value": 1
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "values": false
+    },
+    "colorMode": "background",
+    "graphMode": "none",
+    "textMode": "value"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "editorMode": "code",
+     "format": "table",
+     "rawQuery": true,
+     "rawSql": "SELECT CASE WHEN payload->'grid'->>'outage'='true' THEN 1 ELSE 0 END AS outage FROM latest WHERE k='feeds'",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 5,
+   "type": "stat",
+   "title": "Vehicles rerouted",
+   "description": "",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 12,
+    "y": 1,
+    "w": 4,
+    "h": 4
+   },
+   "fieldConfig": {
+    "defaults": {
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "blue",
+        "value": null
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "values": false
+    },
+    "colorMode": "background",
+    "graphMode": "none",
+    "textMode": "value"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "editorMode": "code",
+     "format": "table",
+     "rawQuery": true,
+     "rawSql": "SELECT count(DISTINCT vehicle_id) AS rerouted FROM events WHERE topic='cloud.route' AND ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo()",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 6,
+   "type": "stat",
+   "title": "Stranded: no reachable station",
+   "description": "Needs roadside assistance",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 16,
+    "y": 1,
+    "w": 4,
+    "h": 4
+   },
+   "fieldConfig": {
+    "defaults": {
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "green",
+        "value": null
+       },
+       {
+        "color": "red",
+        "value": 1
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "values": false
+    },
+    "colorMode": "background",
+    "graphMode": "none",
+    "textMode": "value"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "editorMode": "code",
+     "format": "table",
+     "rawQuery": true,
+     "rawSql": "SELECT count(DISTINCT vehicle_id) AS stranded FROM events WHERE topic='cloud.route' AND payload->>'ok'='false' AND ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo()",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 7,
+   "type": "stat",
+   "title": "Grid load",
+   "description": "",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 20,
+    "y": 1,
+    "w": 4,
+    "h": 4
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "percent",
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "green",
+        "value": null
+       },
+       {
+        "color": "orange",
+        "value": 80
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "values": false
+    },
+    "colorMode": "background",
+    "graphMode": "none",
+    "textMode": "value"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "editorMode": "code",
+     "format": "table",
+     "rawQuery": true,
+     "rawSql": "SELECT (payload->'grid'->>'load')::float*100 AS load FROM latest WHERE k='feeds'",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 8,
+   "type": "table",
+   "title": "Charging stations (live)",
+   "description": "",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 5,
+    "w": 8,
+    "h": 9
+   },
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   },
+   "options": {
+    "showHeader": true,
+    "cellHeight": "sm"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "editorMode": "code",
+     "format": "table",
+     "rawQuery": true,
+     "rawSql": "SELECT s->>'id' AS station, CASE WHEN s->>'online'='true' THEN 'ONLINE' ELSE 'OFFLINE' END AS status, s->>'ports' AS ports, s->>'lat' AS lat, s->>'lon' AS lon FROM (SELECT s FROM latest, jsonb_array_elements(payload->'grid'->'stations') s WHERE k='feeds') x ORDER BY 1",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 9,
+   "type": "timeseries",
+   "title": "Stations online over time",
+   "description": "Drops when a grid outage takes stations down",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 8,
+    "y": 5,
+    "w": 16,
+    "h": 9
+   },
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   },
+   "options": {},
+   "targets": [
+    {
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "editorMode": "code",
+     "format": "time_series",
+     "rawQuery": true,
+     "rawSql": "SELECT to_timestamp(ts) AS time, (SELECT count(*) FROM jsonb_array_elements(payload->'grid'->'stations') s WHERE s->>'online'='true') AS online FROM events WHERE topic='cloud.fleet' AND kind='feeds' AND ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo() ORDER BY ts",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 10,
+   "type": "row",
+   "title": "DRIVER / VEHICLE: where to charge now",
+   "collapsed": false,
+   "gridPos": {
+    "x": 0,
+    "y": 14,
+    "w": 24,
+    "h": 1
+   },
+   "panels": []
+  },
+  {
+   "id": 11,
+   "type": "table",
+   "title": "Route plans pushed to vehicles",
+   "description": "Nearest reachable ONLINE station within range, with reserve margin",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 15,
+    "w": 14,
+    "h": 9
+   },
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   },
+   "options": {
+    "showHeader": true,
+    "cellHeight": "sm"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "editorMode": "code",
+     "format": "table",
+     "rawQuery": true,
+     "rawSql": "SELECT to_timestamp(ts) AS time, vehicle_id AS vehicle, payload->>'reason' AS why, payload->>'ok' AS found_station, payload->>'range_km' AS range_km, payload->'choice'->>'station' AS go_to, payload->'choice'->>'distance_km' AS km, payload->'choice'->>'eta_min' AS eta_min, payload->>'advice' AS advice FROM events WHERE topic='cloud.route' AND ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo() ORDER BY id DESC LIMIT 25",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 12,
+   "type": "timeseries",
+   "title": "Charge level of rerouted vehicle",
+   "description": "Outage drops SoC so the router has to act",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 14,
+    "y": 15,
+    "w": 10,
+    "h": 9
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "percentunit",
+     "min": 0,
+     "max": 1
+    },
+    "overrides": []
+   },
+   "options": {},
+   "targets": [
+    {
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "editorMode": "code",
+     "format": "time_series",
+     "rawQuery": true,
+     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Battery.SoC')::float AS \"SoC\" FROM telemetry WHERE vehicle_id='${vehicle}' AND ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo() ORDER BY ts",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 13,
+   "type": "row",
+   "title": "CLOUD",
+   "collapsed": false,
+   "gridPos": {
+    "x": 0,
+    "y": 24,
+    "w": 24,
+    "h": 1
+   },
+   "panels": []
+  },
+  {
+   "id": 14,
+   "type": "table",
+   "title": "Digital twin and cause for grid incidents",
+   "description": "",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 25,
+    "w": 14,
+    "h": 8
+   },
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   },
+   "options": {
+    "showHeader": true,
+    "cellHeight": "sm"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "editorMode": "code",
+     "format": "table",
+     "rawQuery": true,
+     "rawSql": "SELECT to_timestamp(ts) AS time, vehicle_id AS vehicle, payload->>'edge_cause' AS edge_said, payload->>'final_cause' AS cloud_verdict, payload->>'rca_top' AS ranked_top, payload->>'hidden_heat_confirmed' AS hidden_heat, payload->>'recommended_cap' AS power_cap, payload->'twin'->'time_to_derate_s'->>'1.0' AS s_to_derate_full_power FROM events WHERE topic='cloud.twin' AND payload->>'final_cause'='grid_outage' AND ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo() ORDER BY id DESC LIMIT 25",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 15,
+   "type": "table",
+   "title": "Cloud AI second opinion (Gemini) vs rule/Bayes verdict",
+   "description": "Shown when the Bayesian cause ranking is unsure. The AI may only pick a known cause and can never issue a command.",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 14,
+    "y": 25,
+    "w": 10,
+    "h": 8
+   },
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   },
+   "options": {
+    "showHeader": true,
+    "cellHeight": "sm"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "editorMode": "code",
+     "format": "table",
+     "rawQuery": true,
+     "rawSql": "SELECT to_timestamp(ts) AS time, vehicle_id AS vehicle, payload->>'top' AS bayes_top, payload->'llm'->>'cause' AS ai_cause, payload->'llm'->>'confidence' AS ai_conf, payload->'llm'->>'model' AS model, payload->'llm'->>'rationale' AS ai_rationale FROM events WHERE topic='cloud.rca' AND payload->'llm'->>'cause' IS NOT NULL AND ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo() ORDER BY id DESC LIMIT 20",
+     "refId": "A"
+    }
+   ]
+  }
+ ],
+ "links": [
+  {
+   "title": "1 Breakdown",
+   "type": "link",
+   "url": "/d/quantara-s1",
+   "icon": "dashboard"
+  },
+  {
+   "title": "2 Ecosystem",
+   "type": "link",
+   "url": "/d/quantara-s2",
+   "icon": "dashboard"
+  },
+  {
+   "title": "3 Degradation",
+   "type": "link",
+   "url": "/d/quantara-s3",
+   "icon": "dashboard"
+  },
+  {
+   "title": "4 Cyber",
+   "type": "link",
+   "url": "/d/quantara-s4",
+   "icon": "dashboard"
+  },
+  {
+   "title": "Overview",
+   "type": "link",
+   "url": "/d/quantara-ops",
+   "icon": "dashboard"
+  }
+ ]
+}

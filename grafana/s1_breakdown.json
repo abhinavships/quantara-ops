@@ -1,0 +1,827 @@
+{
+ "uid": "quantara-s1",
+ "title": "1 \u00b7 Possible breakdown: BMS heating, coolant not flowing",
+ "description": "Audience: the vehicle/driver and the service centre. Inject: breakdown",
+ "tags": [
+  "quantara",
+  "breakdown",
+  "vehicle",
+  "service-centre"
+ ],
+ "schemaVersion": 39,
+ "version": 1,
+ "refresh": "5s",
+ "time": {
+  "from": "now-30m",
+  "to": "now"
+ },
+ "timezone": "browser",
+ "editable": true,
+ "graphTooltip": 1,
+ "templating": {
+  "list": [
+   {
+    "name": "vehicle",
+    "label": "Vehicle",
+    "type": "query",
+    "datasource": {
+     "type": "grafana-postgresql-datasource",
+     "uid": "quantara-pg"
+    },
+    "refresh": 2,
+    "sort": 1,
+    "query": "SELECT DISTINCT vehicle_id FROM telemetry ORDER BY 1",
+    "definition": "SELECT DISTINCT vehicle_id FROM telemetry ORDER BY 1",
+    "current": {
+     "text": "V000",
+     "value": "V000"
+    }
+   }
+  ]
+ },
+ "panels": [
+  {
+   "id": 1,
+   "type": "row",
+   "title": "VEHICLE: what the car sees right now",
+   "collapsed": false,
+   "gridPos": {
+    "x": 0,
+    "y": 0,
+    "w": 24,
+    "h": 1
+   },
+   "panels": []
+  },
+  {
+   "id": 2,
+   "type": "stat",
+   "title": "Battery temp \u00b0C",
+   "description": "Edge limits: warn 45, derate 50, critical 58",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 1,
+    "w": 4,
+    "h": 4
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "celsius",
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "green",
+        "value": null
+       },
+       {
+        "color": "yellow",
+        "value": 45
+       },
+       {
+        "color": "orange",
+        "value": 50
+       },
+       {
+        "color": "red",
+        "value": 58
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "values": false
+    },
+    "colorMode": "background",
+    "graphMode": "none",
+    "textMode": "value"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "editorMode": "code",
+     "format": "table",
+     "rawQuery": true,
+     "rawSql": "SELECT (payload->'vss'->>'Battery.Temp')::float AS \"\u00b0C\" FROM latest WHERE k='vss:${vehicle}'",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 3,
+   "type": "stat",
+   "title": "Coolant flow",
+   "description": "Nominal about 8.4. Near 0 means no cooling",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 4,
+    "y": 1,
+    "w": 4,
+    "h": 4
+   },
+   "fieldConfig": {
+    "defaults": {
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "red",
+        "value": null
+       },
+       {
+        "color": "yellow",
+        "value": 6
+       },
+       {
+        "color": "green",
+        "value": 10
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "values": false
+    },
+    "colorMode": "background",
+    "graphMode": "none",
+    "textMode": "value"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "editorMode": "code",
+     "format": "table",
+     "rawQuery": true,
+     "rawSql": "SELECT (payload->'vss'->>'Coolant.Flow')::float AS \"flow\" FROM latest WHERE k='vss:${vehicle}'",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 4,
+   "type": "stat",
+   "title": "Pump duty",
+   "description": "High duty with low flow = pump fault",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 8,
+    "y": 1,
+    "w": 4,
+    "h": 4
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "percent",
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "green",
+        "value": null
+       },
+       {
+        "color": "orange",
+        "value": 90
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "values": false
+    },
+    "colorMode": "background",
+    "graphMode": "none",
+    "textMode": "value"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "editorMode": "code",
+     "format": "table",
+     "rawQuery": true,
+     "rawSql": "SELECT (payload->'vss'->>'Pump.Duty')::float*100 AS \"duty\" FROM latest WHERE k='vss:${vehicle}'",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 5,
+   "type": "stat",
+   "title": "Motor power kW",
+   "description": "",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 12,
+    "y": 1,
+    "w": 4,
+    "h": 4
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "kwatt",
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "green",
+        "value": null
+       },
+       {
+        "color": "yellow",
+        "value": 60
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "values": false
+    },
+    "colorMode": "background",
+    "graphMode": "none",
+    "textMode": "value"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "editorMode": "code",
+     "format": "table",
+     "rawQuery": true,
+     "rawSql": "SELECT (payload->'vss'->>'Power.kW')::float AS \"kW\" FROM latest WHERE k='vss:${vehicle}'",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 6,
+   "type": "stat",
+   "title": "Charge",
+   "description": "",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 16,
+    "y": 1,
+    "w": 4,
+    "h": 4
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "percent",
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "red",
+        "value": null
+       },
+       {
+        "color": "yellow",
+        "value": 20
+       },
+       {
+        "color": "green",
+        "value": 40
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "values": false
+    },
+    "colorMode": "background",
+    "graphMode": "none",
+    "textMode": "value"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "editorMode": "code",
+     "format": "table",
+     "rawQuery": true,
+     "rawSql": "SELECT (payload->'vss'->>'Battery.SoC')::float*100 AS \"SoC\" FROM latest WHERE k='vss:${vehicle}'",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 7,
+   "type": "stat",
+   "title": "Hazard lamp",
+   "description": "Lights when the edge has capped power",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 20,
+    "y": 1,
+    "w": 4,
+    "h": 4
+   },
+   "fieldConfig": {
+    "defaults": {
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "green",
+        "value": null
+       },
+       {
+        "color": "red",
+        "value": 1
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "values": false
+    },
+    "colorMode": "background",
+    "graphMode": "none",
+    "textMode": "value"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "editorMode": "code",
+     "format": "table",
+     "rawQuery": true,
+     "rawSql": "SELECT (payload->'vss'->>'Lamp.Hazard')::float AS \"hazard\" FROM latest WHERE k='vss:${vehicle}'",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 8,
+   "type": "timeseries",
+   "title": "Battery temperature vs edge limits",
+   "description": "Rises when coolant stops. The edge derates at 50",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 5,
+    "w": 12,
+    "h": 8
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "celsius",
+     "max": 70,
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "green",
+        "value": null
+       },
+       {
+        "color": "yellow",
+        "value": 45
+       },
+       {
+        "color": "orange",
+        "value": 50
+       },
+       {
+        "color": "red",
+        "value": 58
+       }
+      ]
+     },
+     "color": {
+      "mode": "palette-classic"
+     },
+     "custom": {
+      "thresholdsStyle": {
+       "mode": "line+area"
+      },
+      "lineWidth": 2
+     }
+    },
+    "overrides": []
+   },
+   "options": {},
+   "targets": [
+    {
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "editorMode": "code",
+     "format": "time_series",
+     "rawQuery": true,
+     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Battery.Temp')::float AS \"Battery temp \u00b0C\" FROM telemetry WHERE vehicle_id='${vehicle}' AND ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo() ORDER BY ts",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 9,
+   "type": "timeseries",
+   "title": "Coolant flow vs pump duty (pump failing = duty up, flow to 0)",
+   "description": "",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 12,
+    "y": 5,
+    "w": 12,
+    "h": 8
+   },
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   },
+   "options": {},
+   "targets": [
+    {
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "editorMode": "code",
+     "format": "time_series",
+     "rawQuery": true,
+     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Coolant.Flow')::float AS \"Coolant flow\", (vss->>'Pump.Duty')::float*10 AS \"Pump duty x10\" FROM telemetry WHERE vehicle_id='${vehicle}' AND ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo() ORDER BY ts",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 10,
+   "type": "timeseries",
+   "title": "Motor power (kW). Drops when the edge derates",
+   "description": "",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 13,
+    "w": 12,
+    "h": 7
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "kwatt"
+    },
+    "overrides": []
+   },
+   "options": {},
+   "targets": [
+    {
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "editorMode": "code",
+     "format": "time_series",
+     "rawQuery": true,
+     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Power.kW')::float AS \"Power kW\" FROM telemetry WHERE vehicle_id='${vehicle}' AND ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo() ORDER BY ts",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 11,
+   "type": "table",
+   "title": "Message shown to the driver (from the cloud verdict)",
+   "description": "Plain-language message derived from the cloud's final cause",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 12,
+    "y": 13,
+    "w": 12,
+    "h": 7
+   },
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   },
+   "options": {
+    "showHeader": true,
+    "cellHeight": "sm"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "editorMode": "code",
+     "format": "table",
+     "rawQuery": true,
+     "rawSql": "SELECT to_timestamp(ts) AS time, vehicle_id AS vehicle, CASE payload->>'final_cause' WHEN 'pump_fault' THEN 'Cooling pump is failing. Power is reduced to protect the battery. Please drive to a service centre.' WHEN 'cell_heating' THEN 'Battery is heating abnormally. Reduced power. Stop safely if the warning stays on.' WHEN 'high_load' THEN 'Hard driving in heat. No fault. Ease off the throttle.' WHEN 'sensor_fault' THEN 'A temperature sensor is faulty. Car is ignoring it. Service when convenient.' ELSE 'Check needed. Reduced power as a precaution.' END AS message_to_driver, payload->>'recommended_cap' AS power_cap FROM events WHERE topic='cloud.twin' AND payload->>'security'='false' AND vehicle_id='${vehicle}' AND ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo() ORDER BY id DESC LIMIT 5",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 12,
+   "type": "row",
+   "title": "SERVICE CENTRE: what to fix and why",
+   "collapsed": false,
+   "gridPos": {
+    "x": 0,
+    "y": 20,
+    "w": 24,
+    "h": 1
+   },
+   "panels": []
+  },
+  {
+   "id": 13,
+   "type": "table",
+   "title": "Work orders (all vehicles, latest first)",
+   "description": "",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 21,
+    "w": 14,
+    "h": 9
+   },
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   },
+   "options": {
+    "showHeader": true,
+    "cellHeight": "sm"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "editorMode": "code",
+     "format": "table",
+     "rawQuery": true,
+     "rawSql": "SELECT to_timestamp(ts) AS time, vehicle_id AS vehicle, payload->>'final_cause' AS fault_to_fix, CASE payload->>'final_cause' WHEN 'pump_fault' THEN 'Replace coolant pump, bleed system' WHEN 'cell_heating' THEN 'Inspect module for hotspot, isolate pack' WHEN 'sensor_fault' THEN 'Replace temperature sensor' WHEN 'high_load' THEN 'No repair. Advise driver' ELSE 'Diagnose' END AS work_order, payload->'twin'->'time_to_derate_s'->>'1.0' AS s_to_derate_at_full_power, payload->>'hidden_heat_confirmed' AS hidden_heat FROM events WHERE topic='cloud.twin' AND payload->>'security'='false' AND ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo() ORDER BY id DESC LIMIT 25",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 14,
+   "type": "barchart",
+   "title": "Why? Cause ranking for this vehicle's latest incident",
+   "description": "Posterior probability per candidate cause (likelihood x learned prior)",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 14,
+    "y": 21,
+    "w": 10,
+    "h": 9
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "percentunit"
+    },
+    "overrides": []
+   },
+   "options": {
+    "orientation": "horizontal",
+    "legend": {
+     "showLegend": false
+    }
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "editorMode": "code",
+     "format": "table",
+     "rawQuery": true,
+     "rawSql": "SELECT h->>'cause' AS cause, (h->>'posterior')::float AS posterior FROM (SELECT payload FROM events WHERE topic='cloud.rca' AND payload->>'kind'='rca' AND vehicle_id='${vehicle}' ORDER BY id DESC LIMIT 1) e, jsonb_array_elements(e.payload->'hypotheses') h",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 15,
+   "type": "row",
+   "title": "CLOUD: digital twin and AI",
+   "collapsed": false,
+   "gridPos": {
+    "x": 0,
+    "y": 30,
+    "w": 24,
+    "h": 1
+   },
+   "panels": []
+  },
+  {
+   "id": 16,
+   "type": "table",
+   "title": "Digital twin verdicts",
+   "description": "",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 31,
+    "w": 14,
+    "h": 8
+   },
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   },
+   "options": {
+    "showHeader": true,
+    "cellHeight": "sm"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "editorMode": "code",
+     "format": "table",
+     "rawQuery": true,
+     "rawSql": "SELECT to_timestamp(ts) AS time, vehicle_id AS vehicle, payload->>'edge_cause' AS edge_said, payload->>'final_cause' AS cloud_verdict, payload->>'rca_top' AS ranked_top, payload->>'hidden_heat_confirmed' AS hidden_heat, payload->>'recommended_cap' AS power_cap, payload->'twin'->'time_to_derate_s'->>'1.0' AS s_to_derate_full_power FROM events WHERE topic='cloud.twin' AND payload->>'security'='false' AND ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo() ORDER BY id DESC LIMIT 25",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 17,
+   "type": "table",
+   "title": "Cloud AI second opinion (Gemini) vs rule/Bayes verdict",
+   "description": "Shown when the Bayesian cause ranking is unsure. The AI may only pick a known cause and can never issue a command.",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 14,
+    "y": 31,
+    "w": 10,
+    "h": 8
+   },
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   },
+   "options": {
+    "showHeader": true,
+    "cellHeight": "sm"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "editorMode": "code",
+     "format": "table",
+     "rawQuery": true,
+     "rawSql": "SELECT to_timestamp(ts) AS time, vehicle_id AS vehicle, payload->>'top' AS bayes_top, payload->'llm'->>'cause' AS ai_cause, payload->'llm'->>'confidence' AS ai_conf, payload->'llm'->>'model' AS model, payload->'llm'->>'rationale' AS ai_rationale FROM events WHERE topic='cloud.rca' AND payload->'llm'->>'cause' IS NOT NULL AND ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo() ORDER BY id DESC LIMIT 20",
+     "refId": "A"
+    }
+   ]
+  }
+ ],
+ "links": [
+  {
+   "title": "1 Breakdown",
+   "type": "link",
+   "url": "/d/quantara-s1",
+   "icon": "dashboard"
+  },
+  {
+   "title": "2 Ecosystem",
+   "type": "link",
+   "url": "/d/quantara-s2",
+   "icon": "dashboard"
+  },
+  {
+   "title": "3 Degradation",
+   "type": "link",
+   "url": "/d/quantara-s3",
+   "icon": "dashboard"
+  },
+  {
+   "title": "4 Cyber",
+   "type": "link",
+   "url": "/d/quantara-s4",
+   "icon": "dashboard"
+  },
+  {
+   "title": "Overview",
+   "type": "link",
+   "url": "/d/quantara-ops",
+   "icon": "dashboard"
+  }
+ ]
+}

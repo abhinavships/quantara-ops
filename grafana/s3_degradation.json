@@ -1,0 +1,713 @@
+{
+ "uid": "quantara-s3",
+ "title": "3 \u00b7 Performance degradation: km/kWh falling, range dropping",
+ "description": "Audience: the owner and the OEM. Inject: degradation",
+ "tags": [
+  "quantara",
+  "efficiency",
+  "owner",
+  "oem"
+ ],
+ "schemaVersion": 39,
+ "version": 1,
+ "refresh": "5s",
+ "time": {
+  "from": "now-30m",
+  "to": "now"
+ },
+ "timezone": "browser",
+ "editable": true,
+ "graphTooltip": 1,
+ "templating": {
+  "list": [
+   {
+    "name": "vehicle",
+    "label": "Vehicle",
+    "type": "query",
+    "datasource": {
+     "type": "grafana-postgresql-datasource",
+     "uid": "quantara-pg"
+    },
+    "refresh": 2,
+    "sort": 1,
+    "query": "SELECT DISTINCT vehicle_id FROM telemetry ORDER BY 1",
+    "definition": "SELECT DISTINCT vehicle_id FROM telemetry ORDER BY 1",
+    "current": {
+     "text": "V000",
+     "value": "V000"
+    }
+   }
+  ]
+ },
+ "panels": [
+  {
+   "id": 1,
+   "type": "row",
+   "title": "OWNER: my efficiency and range",
+   "collapsed": false,
+   "gridPos": {
+    "x": 0,
+    "y": 0,
+    "w": 24,
+    "h": 1
+   },
+   "panels": []
+  },
+  {
+   "id": 2,
+   "type": "stat",
+   "title": "Efficiency km/kWh",
+   "description": "Healthy is about 6.5. Falls with tyre drag or HVAC",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 1,
+    "w": 4,
+    "h": 4
+   },
+   "fieldConfig": {
+    "defaults": {
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "red",
+        "value": null
+       },
+       {
+        "color": "yellow",
+        "value": 4.5
+       },
+       {
+        "color": "green",
+        "value": 6
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "values": false
+    },
+    "colorMode": "background",
+    "graphMode": "none",
+    "textMode": "value"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "editorMode": "code",
+     "format": "table",
+     "rawQuery": true,
+     "rawSql": "SELECT (payload->'vss'->>'Battery.kmPerKwh')::float AS \"km/kWh\" FROM latest WHERE k='vss:${vehicle}'",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 3,
+   "type": "stat",
+   "title": "Est. range km",
+   "description": "SoC x 60 kWh x km/kWh",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 4,
+    "y": 1,
+    "w": 4,
+    "h": 4
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "lengthkm",
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "red",
+        "value": null
+       },
+       {
+        "color": "yellow",
+        "value": 80
+       },
+       {
+        "color": "green",
+        "value": 150
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "values": false
+    },
+    "colorMode": "background",
+    "graphMode": "none",
+    "textMode": "value"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "editorMode": "code",
+     "format": "table",
+     "rawQuery": true,
+     "rawSql": "SELECT ((payload->'vss'->>'Battery.SoC')::float*60*(payload->'vss'->>'Battery.kmPerKwh')::float) AS range FROM latest WHERE k='vss:${vehicle}'",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 4,
+   "type": "stat",
+   "title": "Charge",
+   "description": "",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 8,
+    "y": 1,
+    "w": 4,
+    "h": 4
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "percent",
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "red",
+        "value": null
+       },
+       {
+        "color": "yellow",
+        "value": 20
+       },
+       {
+        "color": "green",
+        "value": 40
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "values": false
+    },
+    "colorMode": "background",
+    "graphMode": "none",
+    "textMode": "value"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "editorMode": "code",
+     "format": "table",
+     "rawQuery": true,
+     "rawSql": "SELECT (payload->'vss'->>'Battery.SoC')::float*100 AS \"SoC\" FROM latest WHERE k='vss:${vehicle}'",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 5,
+   "type": "stat",
+   "title": "Speed",
+   "description": "",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 12,
+    "y": 1,
+    "w": 4,
+    "h": 4
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "velocitykmh",
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "blue",
+        "value": null
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "values": false
+    },
+    "colorMode": "background",
+    "graphMode": "none",
+    "textMode": "value"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "editorMode": "code",
+     "format": "table",
+     "rawQuery": true,
+     "rawSql": "SELECT (payload->'vss'->>'Vehicle.Speed')::float AS \"kph\" FROM latest WHERE k='vss:${vehicle}'",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 6,
+   "type": "stat",
+   "title": "Vehicles below 5 km/kWh",
+   "description": "Fleet-wide",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 16,
+    "y": 1,
+    "w": 4,
+    "h": 4
+   },
+   "fieldConfig": {
+    "defaults": {
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "green",
+        "value": null
+       },
+       {
+        "color": "orange",
+        "value": 1
+       },
+       {
+        "color": "red",
+        "value": 10
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "values": false
+    },
+    "colorMode": "background",
+    "graphMode": "none",
+    "textMode": "value"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "editorMode": "code",
+     "format": "table",
+     "rawQuery": true,
+     "rawSql": "SELECT count(*) AS n FROM latest WHERE k LIKE 'vss:V%' AND (payload->'vss'->>'Battery.kmPerKwh')::float < 5",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 7,
+   "type": "stat",
+   "title": "Fleet avg km/kWh",
+   "description": "",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 20,
+    "y": 1,
+    "w": 4,
+    "h": 4
+   },
+   "fieldConfig": {
+    "defaults": {
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "red",
+        "value": null
+       },
+       {
+        "color": "yellow",
+        "value": 5
+       },
+       {
+        "color": "green",
+        "value": 6
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "values": false
+    },
+    "colorMode": "background",
+    "graphMode": "none",
+    "textMode": "value"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "editorMode": "code",
+     "format": "table",
+     "rawQuery": true,
+     "rawSql": "SELECT avg((payload->'vss'->>'Battery.kmPerKwh')::float) AS avg FROM latest WHERE k LIKE 'vss:V%'",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 8,
+   "type": "timeseries",
+   "title": "Efficiency over time (km/kWh)",
+   "description": "Tyre drag 1.6x drops this by about 38%",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 5,
+    "w": 12,
+    "h": 8
+   },
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   },
+   "options": {},
+   "targets": [
+    {
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "editorMode": "code",
+     "format": "time_series",
+     "rawQuery": true,
+     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Battery.kmPerKwh')::float AS \"km/kWh\" FROM telemetry WHERE vehicle_id='${vehicle}' AND ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo() ORDER BY ts",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 9,
+   "type": "timeseries",
+   "title": "Charge level and speed",
+   "description": "",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 12,
+    "y": 5,
+    "w": 12,
+    "h": 8
+   },
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   },
+   "options": {},
+   "targets": [
+    {
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "editorMode": "code",
+     "format": "time_series",
+     "rawQuery": true,
+     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Battery.SoC')::float*100 AS \"SoC %\", (vss->>'Vehicle.Speed')::float AS \"Speed km/h\" FROM telemetry WHERE vehicle_id='${vehicle}' AND ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo() ORDER BY ts",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 10,
+   "type": "row",
+   "title": "OEM: fleet efficiency and drift",
+   "collapsed": false,
+   "gridPos": {
+    "x": 0,
+    "y": 13,
+    "w": 24,
+    "h": 1
+   },
+   "panels": []
+  },
+  {
+   "id": 11,
+   "type": "timeseries",
+   "title": "Fleet average km/kWh over time (OEM view)",
+   "description": "Fleet baseline. A single vehicle falling away from it is a vehicle problem; the whole line falling is a software/model problem",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 14,
+    "w": 12,
+    "h": 8
+   },
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   },
+   "options": {},
+   "targets": [
+    {
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "editorMode": "code",
+     "format": "time_series",
+     "rawQuery": true,
+     "rawSql": "SELECT date_trunc('minute', to_timestamp(ts)) AS time, avg((vss->>'Battery.kmPerKwh')::float) AS fleet_avg FROM telemetry WHERE vehicle_id LIKE 'V%' AND ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo() GROUP BY 1 ORDER BY 1",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 12,
+   "type": "table",
+   "title": "Least efficient vehicles right now",
+   "description": "",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 12,
+    "y": 14,
+    "w": 12,
+    "h": 8
+   },
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   },
+   "options": {
+    "showHeader": true,
+    "cellHeight": "sm"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "editorMode": "code",
+     "format": "table",
+     "rawQuery": true,
+     "rawSql": "SELECT k AS vehicle, (payload->'vss'->>'Battery.kmPerKwh')::float AS km_per_kwh, round(((payload->'vss'->>'Battery.SoC')::float*60*(payload->'vss'->>'Battery.kmPerKwh')::float)::numeric,0) AS est_range_km, (payload->'vss'->>'Battery.SoC')::float AS soc FROM latest WHERE k LIKE 'vss:V%' ORDER BY 2 ASC LIMIT 15",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 13,
+   "type": "row",
+   "title": "CLOUD: what the twin recommends",
+   "collapsed": false,
+   "gridPos": {
+    "x": 0,
+    "y": 22,
+    "w": 24,
+    "h": 1
+   },
+   "panels": []
+  },
+  {
+   "id": 14,
+   "type": "table",
+   "title": "Twin verdicts for degradation",
+   "description": "",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 23,
+    "w": 14,
+    "h": 8
+   },
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   },
+   "options": {
+    "showHeader": true,
+    "cellHeight": "sm"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "editorMode": "code",
+     "format": "table",
+     "rawQuery": true,
+     "rawSql": "SELECT to_timestamp(ts) AS time, vehicle_id AS vehicle, payload->>'edge_cause' AS edge_said, payload->>'final_cause' AS cloud_verdict, payload->>'rca_top' AS ranked_top, payload->>'hidden_heat_confirmed' AS hidden_heat, payload->>'recommended_cap' AS power_cap, payload->'twin'->'time_to_derate_s'->>'1.0' AS s_to_derate_full_power FROM events WHERE topic='cloud.twin' AND payload->>'final_cause'='efficiency_degradation' AND ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo() ORDER BY id DESC LIMIT 25",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 15,
+   "type": "table",
+   "title": "Cloud AI second opinion (Gemini) vs rule/Bayes verdict",
+   "description": "Shown when the Bayesian cause ranking is unsure. The AI may only pick a known cause and can never issue a command.",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 14,
+    "y": 23,
+    "w": 10,
+    "h": 8
+   },
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   },
+   "options": {
+    "showHeader": true,
+    "cellHeight": "sm"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "editorMode": "code",
+     "format": "table",
+     "rawQuery": true,
+     "rawSql": "SELECT to_timestamp(ts) AS time, vehicle_id AS vehicle, payload->>'top' AS bayes_top, payload->'llm'->>'cause' AS ai_cause, payload->'llm'->>'confidence' AS ai_conf, payload->'llm'->>'model' AS model, payload->'llm'->>'rationale' AS ai_rationale FROM events WHERE topic='cloud.rca' AND payload->'llm'->>'cause' IS NOT NULL AND ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo() ORDER BY id DESC LIMIT 20",
+     "refId": "A"
+    }
+   ]
+  }
+ ],
+ "links": [
+  {
+   "title": "1 Breakdown",
+   "type": "link",
+   "url": "/d/quantara-s1",
+   "icon": "dashboard"
+  },
+  {
+   "title": "2 Ecosystem",
+   "type": "link",
+   "url": "/d/quantara-s2",
+   "icon": "dashboard"
+  },
+  {
+   "title": "3 Degradation",
+   "type": "link",
+   "url": "/d/quantara-s3",
+   "icon": "dashboard"
+  },
+  {
+   "title": "4 Cyber",
+   "type": "link",
+   "url": "/d/quantara-s4",
+   "icon": "dashboard"
+  },
+  {
+   "title": "Overview",
+   "type": "link",
+   "url": "/d/quantara-ops",
+   "icon": "dashboard"
+  }
+ ]
+}

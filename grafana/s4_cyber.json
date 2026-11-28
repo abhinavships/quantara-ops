@@ -1,0 +1,738 @@
+{
+ "uid": "quantara-s4",
+ "title": "4 \u00b7 Cyber threat: malicious packet or intrusion",
+ "description": "Audience: OEM security operations and the service centre. Inject: cyber_flood / cyber_spoof / cyber_replay / cyber_fuzz / cal_tamper",
+ "tags": [
+  "quantara",
+  "cyber",
+  "oem",
+  "service-centre"
+ ],
+ "schemaVersion": 39,
+ "version": 1,
+ "refresh": "5s",
+ "time": {
+  "from": "now-30m",
+  "to": "now"
+ },
+ "timezone": "browser",
+ "editable": true,
+ "graphTooltip": 1,
+ "templating": {
+  "list": [
+   {
+    "name": "vehicle",
+    "label": "Vehicle",
+    "type": "query",
+    "datasource": {
+     "type": "grafana-postgresql-datasource",
+     "uid": "quantara-pg"
+    },
+    "refresh": 2,
+    "sort": 1,
+    "query": "SELECT DISTINCT vehicle_id FROM telemetry ORDER BY 1",
+    "definition": "SELECT DISTINCT vehicle_id FROM telemetry ORDER BY 1",
+    "current": {
+     "text": "V000",
+     "value": "V000"
+    }
+   }
+  ]
+ },
+ "panels": [
+  {
+   "id": 1,
+   "type": "row",
+   "title": "OEM SECURITY OPERATIONS",
+   "collapsed": false,
+   "gridPos": {
+    "x": 0,
+    "y": 0,
+    "w": 24,
+    "h": 1
+   },
+   "panels": []
+  },
+  {
+   "id": 2,
+   "type": "stat",
+   "title": "Security incidents",
+   "description": "",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 1,
+    "w": 4,
+    "h": 4
+   },
+   "fieldConfig": {
+    "defaults": {
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "green",
+        "value": null
+       },
+       {
+        "color": "red",
+        "value": 1
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "values": false
+    },
+    "colorMode": "background",
+    "graphMode": "none",
+    "textMode": "value"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "editorMode": "code",
+     "format": "table",
+     "rawQuery": true,
+     "rawSql": "SELECT count(*) AS n FROM events WHERE topic='cloud.security' AND ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo()",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 3,
+   "type": "stat",
+   "title": "Vehicles hit",
+   "description": "",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 4,
+    "y": 1,
+    "w": 4,
+    "h": 4
+   },
+   "fieldConfig": {
+    "defaults": {
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "green",
+        "value": null
+       },
+       {
+        "color": "orange",
+        "value": 1
+       },
+       {
+        "color": "red",
+        "value": 3
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "values": false
+    },
+    "colorMode": "background",
+    "graphMode": "none",
+    "textMode": "value"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "editorMode": "code",
+     "format": "table",
+     "rawQuery": true,
+     "rawSql": "SELECT count(DISTINCT vehicle_id) AS n FROM events WHERE topic='cloud.security' AND ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo()",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 4,
+   "type": "stat",
+   "title": "Fleet-wide alerts",
+   "description": "3+ vehicles with the same cause",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 8,
+    "y": 1,
+    "w": 4,
+    "h": 4
+   },
+   "fieldConfig": {
+    "defaults": {
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "green",
+        "value": null
+       },
+       {
+        "color": "red",
+        "value": 1
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "values": false
+    },
+    "colorMode": "background",
+    "graphMode": "none",
+    "textMode": "value"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "editorMode": "code",
+     "format": "table",
+     "rawQuery": true,
+     "rawSql": "SELECT count(*) AS n FROM events WHERE topic='cloud.fleet' AND kind='fleet_incident' AND ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo()",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 5,
+   "type": "stat",
+   "title": "Vehicles quarantined",
+   "description": "Isolated so bad data never reaches the cloud",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 12,
+    "y": 1,
+    "w": 4,
+    "h": 4
+   },
+   "fieldConfig": {
+    "defaults": {
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "green",
+        "value": null
+       },
+       {
+        "color": "orange",
+        "value": 1
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "values": false
+    },
+    "colorMode": "background",
+    "graphMode": "none",
+    "textMode": "value"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "editorMode": "code",
+     "format": "table",
+     "rawQuery": true,
+     "rawSql": "SELECT count(DISTINCT payload->>'vehicle_id') AS n FROM events WHERE topic='quarantine' AND payload->>'action'='enter' AND ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo()",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 6,
+   "type": "stat",
+   "title": "Commands refused",
+   "description": "Guard ranges, signatures, consent",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 16,
+    "y": 1,
+    "w": 4,
+    "h": 4
+   },
+   "fieldConfig": {
+    "defaults": {
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "green",
+        "value": null
+       },
+       {
+        "color": "orange",
+        "value": 1
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "values": false
+    },
+    "colorMode": "background",
+    "graphMode": "none",
+    "textMode": "value"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "editorMode": "code",
+     "format": "table",
+     "rawQuery": true,
+     "rawSql": "SELECT count(*) AS n FROM events WHERE topic='notify.out' AND kind='refused' AND ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo()",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 7,
+   "type": "stat",
+   "title": "Bad data to DLQ",
+   "description": "",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 20,
+    "y": 1,
+    "w": 4,
+    "h": 4
+   },
+   "fieldConfig": {
+    "defaults": {
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "green",
+        "value": null
+       },
+       {
+        "color": "orange",
+        "value": 1
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "values": false
+    },
+    "colorMode": "background",
+    "graphMode": "none",
+    "textMode": "value"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "editorMode": "code",
+     "format": "table",
+     "rawQuery": true,
+     "rawSql": "SELECT count(*) AS n FROM events WHERE topic='dlq' AND ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo()",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 8,
+   "type": "timeseries",
+   "title": "Security incidents per minute by attack type",
+   "description": "",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 5,
+    "w": 12,
+    "h": 8
+   },
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   },
+   "options": {},
+   "targets": [
+    {
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "editorMode": "code",
+     "format": "time_series",
+     "rawQuery": true,
+     "rawSql": "SELECT date_trunc('minute', to_timestamp(ts)) AS time, payload->'incident'->>'cause' AS metric, count(*) AS value FROM events WHERE topic='cloud.security' AND ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo() GROUP BY 1,2 ORDER BY 1",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 9,
+   "type": "table",
+   "title": "Incident feed (what the edge saw and did)",
+   "description": "Edge isolates the CAN segment / restores golden calibration, then reports",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 12,
+    "y": 5,
+    "w": 12,
+    "h": 8
+   },
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   },
+   "options": {
+    "showHeader": true,
+    "cellHeight": "sm"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "editorMode": "code",
+     "format": "table",
+     "rawQuery": true,
+     "rawSql": "SELECT to_timestamp(ts) AS time, vehicle_id AS vehicle, payload->'incident'->>'cause' AS attack, payload->'incident'->>'confidence' AS confidence, array_to_string(ARRAY(SELECT jsonb_array_elements_text(payload->'incident'->'actions')),', ') AS edge_actions FROM events WHERE topic='cloud.security' AND ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo() ORDER BY id DESC LIMIT 25",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 10,
+   "type": "table",
+   "title": "Coordinated attack detection (fleet correlation)",
+   "description": "",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 13,
+    "w": 12,
+    "h": 7
+   },
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   },
+   "options": {
+    "showHeader": true,
+    "cellHeight": "sm"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "editorMode": "code",
+     "format": "table",
+     "rawQuery": true,
+     "rawSql": "SELECT to_timestamp(ts) AS time, payload->>'cause' AS cause, payload->>'suggestion' AS suggestion, jsonb_array_length(payload->'vehicles') AS vehicles, array_to_string(ARRAY(SELECT jsonb_array_elements_text(payload->'vehicles')),', ') AS who FROM events WHERE topic='cloud.fleet' AND kind='fleet_incident' AND ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo() ORDER BY id DESC LIMIT 15",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 11,
+   "type": "table",
+   "title": "Tamper-evident audit trail (hash-chained)",
+   "description": "",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 12,
+    "y": 13,
+    "w": 12,
+    "h": 7
+   },
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   },
+   "options": {
+    "showHeader": true,
+    "cellHeight": "sm"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "editorMode": "code",
+     "format": "table",
+     "rawQuery": true,
+     "rawSql": "SELECT to_timestamp(ts) AS time, actor, action, left(detail,120) AS detail FROM audit WHERE ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo() ORDER BY seq DESC LIMIT 15",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 12,
+   "type": "row",
+   "title": "SERVICE CENTRE: vehicle under attack",
+   "collapsed": false,
+   "gridPos": {
+    "x": 0,
+    "y": 20,
+    "w": 24,
+    "h": 1
+   },
+   "panels": []
+  },
+  {
+   "id": 13,
+   "type": "timeseries",
+   "title": "Vehicle behaviour during the attack",
+   "description": "",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 21,
+    "w": 12,
+    "h": 7
+   },
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   },
+   "options": {},
+   "targets": [
+    {
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "editorMode": "code",
+     "format": "time_series",
+     "rawQuery": true,
+     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Vehicle.Speed')::float AS \"Speed km/h\", (vss->>'Power.kW')::float AS \"Power kW\" FROM telemetry WHERE vehicle_id='${vehicle}' AND ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo() ORDER BY ts",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 14,
+   "type": "table",
+   "title": "Calibration tamper / restore (golden settings)",
+   "description": "Service centre re-flashes only if the restore did not hold",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 12,
+    "y": 21,
+    "w": 12,
+    "h": 7
+   },
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   },
+   "options": {
+    "showHeader": true,
+    "cellHeight": "sm"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "editorMode": "code",
+     "format": "table",
+     "rawQuery": true,
+     "rawSql": "SELECT to_timestamp(ts) AS time, vehicle_id AS vehicle, payload->'incident'->>'cause' AS attack, payload->'incident'->>'confidence' AS confidence, array_to_string(ARRAY(SELECT jsonb_array_elements_text(payload->'incident'->'actions')),', ') AS edge_actions FROM events WHERE topic='cloud.security' AND payload->'incident'->>'cause'='calibration_tamper' AND ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo() ORDER BY id DESC LIMIT 25",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 15,
+   "type": "row",
+   "title": "CLOUD AI",
+   "collapsed": false,
+   "gridPos": {
+    "x": 0,
+    "y": 28,
+    "w": 24,
+    "h": 1
+   },
+   "panels": []
+  },
+  {
+   "id": 16,
+   "type": "table",
+   "title": "Cause ranking and AI second opinion for security incidents",
+   "description": "",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 29,
+    "w": 24,
+    "h": 8
+   },
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   },
+   "options": {
+    "showHeader": true,
+    "cellHeight": "sm"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "editorMode": "code",
+     "format": "table",
+     "rawQuery": true,
+     "rawSql": "SELECT to_timestamp(ts) AS time, vehicle_id AS vehicle, payload->>'top' AS bayes_top, payload->'llm'->>'cause' AS ai_cause, payload->'llm'->>'confidence' AS ai_conf, payload->'llm'->>'model' AS model, payload->'llm'->>'rationale' AS ai_rationale FROM events WHERE topic='cloud.rca' AND payload->'llm'->>'cause' IS NOT NULL AND ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo() ORDER BY id DESC LIMIT 20",
+     "refId": "A"
+    }
+   ]
+  }
+ ],
+ "links": [
+  {
+   "title": "1 Breakdown",
+   "type": "link",
+   "url": "/d/quantara-s1",
+   "icon": "dashboard"
+  },
+  {
+   "title": "2 Ecosystem",
+   "type": "link",
+   "url": "/d/quantara-s2",
+   "icon": "dashboard"
+  },
+  {
+   "title": "3 Degradation",
+   "type": "link",
+   "url": "/d/quantara-s3",
+   "icon": "dashboard"
+  },
+  {
+   "title": "4 Cyber",
+   "type": "link",
+   "url": "/d/quantara-s4",
+   "icon": "dashboard"
+  },
+  {
+   "title": "Overview",
+   "type": "link",
+   "url": "/d/quantara-ops",
+   "icon": "dashboard"
+  }
+ ]
+}

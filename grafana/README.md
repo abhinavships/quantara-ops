@@ -15,3 +15,8 @@ Reads the same Neon Postgres the ops app writes to. Tables: `events`, `latest`, 
    acceleration (incl. speed-bump spikes), suspension travel, steering, battery temp/SoC, lamps and gear.
 
 Credentials stay in your shell / Grafana secrets, never in the repo.
+
+## Scenario dashboards
+`s1_breakdown.json` (vehicle + service centre), `s2_ecosystem.json` (OEM/charging ops + driver), `s3_degradation.json` (owner + OEM),
+`s4_cyber.json` (OEM security + service centre). Inject with `scripts/inject_gw.py <scenario> [vehicles]` (gateway login, no Kafka creds).
+Panels fill when the matching scenario is injected; the "AI second opinion" panels need `GEMINI_API_KEY` on the rca node.
