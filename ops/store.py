@@ -31,7 +31,7 @@ CREATE TRIGGER audit_ro BEFORE UPDATE OR DELETE ON audit FOR EACH ROW EXECUTE FU
 class Store:
     def __init__(self, dsn=None, redis=None):
         self.lock, self.redis, self.pg = threading.RLock(), redis, bool(dsn and dsn.startswith("postgres"))
-        self._last_hist, self._hist_n = {}, 0
+        self._last_hist, self._hist_n, self._last_latest, self._pending = {}, 0, {}, {}
         if self.pg:
             import psycopg
             self.c = psycopg.connect(dsn, autocommit=True)
@@ -71,12 +71,17 @@ class Store:
         kind = msg.get("kind") if isinstance(msg, dict) else None
         ts = msg.get("ts") if isinstance(msg, dict) and isinstance(msg.get("ts"), (int, float)) else time.time()
         if topic == "vss.enriched":                       # high-rate: latest per vehicle + a downsampled history
-            self.set_latest(f"vss:{vid}", msg); self._hist(vid, ts if abs(ts - time.time()) < 86400 else time.time(), msg.get("vss")); return None
+            now = time.time()
+            self._pending[f"vss:{vid}"] = msg                                   # newest wins, served from memory
+            if now - self._last_latest.get(vid, 0) >= self.LATEST_EVERY_S:      # coalesce: a backlog must drain, not do one DB write per stale message
+                self._last_latest[vid] = now; self.set_latest(f"vss:{vid}", msg)
+            self._hist(vid, ts if abs(ts - time.time()) < 86400 else time.time(), msg.get("vss")); return None
         self.exec("INSERT INTO events(ts,topic,kind,vehicle_id,payload) VALUES(?,?,?,?,?)",
                   (ts, topic, kind, vid, json.dumps(msg)))
         if kind == "feeds" or (topic == "cloud.fleet" and kind == "feeds"): self.set_latest("feeds", msg)
         return self.q("SELECT max(id) AS i FROM events")[0]["i"]
 
+    LATEST_EVERY_S = 1.0
     HIST_EVERY_S, HIST_KEEP_S = 5.0, 24 * 3600      # one row per vehicle per 5 s, kept 24 h
 
     def _hist(self, vid, ts, vss):
@@ -117,6 +122,7 @@ class Store:
         else: self.exec("INSERT OR REPLACE INTO latest VALUES(?,?,?)", (k, time.time(), json.dumps(msg)))
 
     def get_latest(self, k):
+        if k in self._pending: return self._pending[k]
         if self.redis is not None:
             v = self.redis.get(f"quantara:{k}")
             if v: return json.loads(v)
