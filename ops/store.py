@@ -31,8 +31,12 @@ class Store:
             import psycopg
             self.c = psycopg.connect(dsn, autocommit=True)
             with self.lock:
-                for stmt in PG.split(";\n"):
-                    if stmt.strip(): self.c.execute(stmt)
+                self.c.execute("SELECT pg_advisory_lock(727001)")      # pods starting together must not race the DDL
+                try:
+                    for stmt in PG.split(";\n"):
+                        if stmt.strip(): self.c.execute(stmt)
+                finally:
+                    self.c.execute("SELECT pg_advisory_unlock(727001)")
         else:
             self.c = sqlite3.connect(dsn or ":memory:", check_same_thread=False, isolation_level=None)
             self.c.row_factory = sqlite3.Row
