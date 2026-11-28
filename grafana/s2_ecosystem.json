@@ -41,13 +41,210 @@
  },
  "panels": [
   {
+   "id": 10,
+   "type": "geomap",
+   "title": "Map: vehicles and charging stations (red triangle = offline)",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 0,
+    "w": 24,
+    "h": 12
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "editorMode": "code",
+     "format": "table",
+     "rawQuery": true,
+     "rawSql": "SELECT (payload->'position'->>0)::float AS lat, (payload->'position'->>1)::float AS lon, replace(k,'vss:','') AS vehicle, (payload->'vss'->>'Vehicle.Powertrain.TractionBattery.Temperature.Average')::float AS temp FROM latest WHERE k LIKE 'vss:V%' AND payload->'position' IS NOT NULL",
+     "refId": "A"
+    },
+    {
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "editorMode": "code",
+     "format": "table",
+     "rawQuery": true,
+     "rawSql": "SELECT (s->>'lat')::float AS lat, (s->>'lon')::float AS lon, s->>'id' AS station FROM latest, jsonb_array_elements(payload->'grid'->'stations') s WHERE k='feeds' AND s->>'online'='true'",
+     "refId": "B"
+    },
+    {
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "editorMode": "code",
+     "format": "table",
+     "rawQuery": true,
+     "rawSql": "SELECT (s->>'lat')::float AS lat, (s->>'lon')::float AS lon, s->>'id' AS station FROM latest, jsonb_array_elements(payload->'grid'->'stations') s WHERE k='feeds' AND s->>'online'='false'",
+     "refId": "C"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "color": {
+      "mode": "thresholds"
+     },
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "green",
+        "value": null
+       },
+       {
+        "color": "yellow",
+        "value": 45
+       },
+       {
+        "color": "orange",
+        "value": 50
+       },
+       {
+        "color": "red",
+        "value": 58
+       }
+      ]
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "view": {
+     "id": "coords",
+     "lat": 12.97,
+     "lon": 77.59,
+     "zoom": 11
+    },
+    "controls": {
+     "showZoom": true,
+     "mouseWheelZoom": true,
+     "showAttribution": true
+    },
+    "basemap": {
+     "type": "default",
+     "name": "Basemap"
+    },
+    "layers": [
+     {
+      "type": "markers",
+      "name": "Vehicles (colour = battery temp)",
+      "tooltip": true,
+      "filterData": {
+       "id": "byRefId",
+       "options": "A"
+      },
+      "location": {
+       "mode": "coords",
+       "latitude": "lat",
+       "longitude": "lon"
+      },
+      "config": {
+       "showLegend": true,
+       "style": {
+        "size": {
+         "fixed": 7,
+         "min": 2,
+         "max": 15
+        },
+        "color": {
+         "field": "temp"
+        },
+        "opacity": 0.85,
+        "symbol": {
+         "mode": "fixed",
+         "fixed": "img/icons/marker/circle.svg"
+        }
+       }
+      }
+     },
+     {
+      "type": "markers",
+      "name": "Charging stations ONLINE",
+      "tooltip": true,
+      "filterData": {
+       "id": "byRefId",
+       "options": "B"
+      },
+      "location": {
+       "mode": "coords",
+       "latitude": "lat",
+       "longitude": "lon"
+      },
+      "config": {
+       "showLegend": true,
+       "style": {
+        "size": {
+         "fixed": 12,
+         "min": 2,
+         "max": 15
+        },
+        "color": {
+         "fixed": "green"
+        },
+        "opacity": 0.85,
+        "symbol": {
+         "mode": "fixed",
+         "fixed": "img/icons/marker/square.svg"
+        }
+       }
+      }
+     },
+     {
+      "type": "markers",
+      "name": "Charging stations OFFLINE",
+      "tooltip": true,
+      "filterData": {
+       "id": "byRefId",
+       "options": "C"
+      },
+      "location": {
+       "mode": "coords",
+       "latitude": "lat",
+       "longitude": "lon"
+      },
+      "config": {
+       "showLegend": true,
+       "style": {
+        "size": {
+         "fixed": 14,
+         "min": 2,
+         "max": 15
+        },
+        "color": {
+         "fixed": "red"
+        },
+        "opacity": 0.85,
+        "symbol": {
+         "mode": "fixed",
+         "fixed": "img/icons/marker/triangle.svg"
+        }
+       }
+      }
+     }
+    ],
+    "tooltip": {
+     "mode": "details"
+    }
+   }
+  },
+  {
    "id": 1,
    "type": "row",
    "title": "OEM / CHARGING OPERATOR: grid and stations",
    "collapsed": false,
    "gridPos": {
     "x": 0,
-    "y": 0,
+    "y": 12,
     "w": 24,
     "h": 1
    },
@@ -64,7 +261,7 @@
    },
    "gridPos": {
     "x": 0,
-    "y": 1,
+    "y": 13,
     "w": 4,
     "h": 4
    },
@@ -129,7 +326,7 @@
    },
    "gridPos": {
     "x": 4,
-    "y": 1,
+    "y": 13,
     "w": 4,
     "h": 4
    },
@@ -190,7 +387,7 @@
    },
    "gridPos": {
     "x": 8,
-    "y": 1,
+    "y": 13,
     "w": 4,
     "h": 4
    },
@@ -251,7 +448,7 @@
    },
    "gridPos": {
     "x": 12,
-    "y": 1,
+    "y": 13,
     "w": 4,
     "h": 4
    },
@@ -308,7 +505,7 @@
    },
    "gridPos": {
     "x": 16,
-    "y": 1,
+    "y": 13,
     "w": 4,
     "h": 4
    },
@@ -369,7 +566,7 @@
    },
    "gridPos": {
     "x": 20,
-    "y": 1,
+    "y": 13,
     "w": 4,
     "h": 4
    },
@@ -431,7 +628,7 @@
    },
    "gridPos": {
     "x": 0,
-    "y": 5,
+    "y": 17,
     "w": 8,
     "h": 9
    },
@@ -468,7 +665,7 @@
    },
    "gridPos": {
     "x": 8,
-    "y": 5,
+    "y": 17,
     "w": 16,
     "h": 9
    },
@@ -498,7 +695,7 @@
    "collapsed": false,
    "gridPos": {
     "x": 0,
-    "y": 14,
+    "y": 26,
     "w": 24,
     "h": 1
    },
@@ -515,7 +712,7 @@
    },
    "gridPos": {
     "x": 0,
-    "y": 15,
+    "y": 27,
     "w": 14,
     "h": 9
    },
@@ -552,7 +749,7 @@
    },
    "gridPos": {
     "x": 14,
-    "y": 15,
+    "y": 27,
     "w": 10,
     "h": 9
    },
@@ -574,7 +771,7 @@
      "editorMode": "code",
      "format": "time_series",
      "rawQuery": true,
-     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Battery.SoC')::float AS \"SoC\" FROM telemetry WHERE vehicle_id='${vehicle}' AND ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo() ORDER BY ts",
+     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Vehicle.Powertrain.TractionBattery.StateOfCharge.Current')::float AS \"SoC\" FROM telemetry WHERE vehicle_id='${vehicle}' AND ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo() ORDER BY ts",
      "refId": "A"
     }
    ]
@@ -586,7 +783,7 @@
    "collapsed": false,
    "gridPos": {
     "x": 0,
-    "y": 24,
+    "y": 36,
     "w": 24,
     "h": 1
    },
@@ -603,7 +800,7 @@
    },
    "gridPos": {
     "x": 0,
-    "y": 25,
+    "y": 37,
     "w": 14,
     "h": 8
    },
@@ -640,7 +837,7 @@
    },
    "gridPos": {
     "x": 14,
-    "y": 25,
+    "y": 37,
     "w": 10,
     "h": 8
    },
@@ -669,6 +866,12 @@
  ],
  "links": [
   {
+   "title": "0 CONTROL ROOM",
+   "type": "link",
+   "url": "/d/quantara-home",
+   "icon": "dashboard"
+  },
+  {
    "title": "1 Breakdown",
    "type": "link",
    "url": "/d/quantara-s1",
@@ -690,12 +893,6 @@
    "title": "4 Cyber",
    "type": "link",
    "url": "/d/quantara-s4",
-   "icon": "dashboard"
-  },
-  {
-   "title": "Overview",
-   "type": "link",
-   "url": "/d/quantara-ops",
    "icon": "dashboard"
   }
  ]

@@ -1,0 +1,684 @@
+{
+ "uid": "quantara-home",
+ "title": "0 \u00b7 CONTROL ROOM: start here (map, live fleet, how it works)",
+ "description": "Everything on one page. Then open scenarios 1-4.",
+ "tags": [
+  "quantara",
+  "home"
+ ],
+ "schemaVersion": 39,
+ "version": 1,
+ "refresh": "5s",
+ "time": {
+  "from": "now-30m",
+  "to": "now"
+ },
+ "timezone": "browser",
+ "editable": true,
+ "graphTooltip": 1,
+ "templating": {
+  "list": []
+ },
+ "panels": [
+  {
+   "id": 2,
+   "type": "stat",
+   "title": "Vehicles reporting",
+   "description": "Seen in the last 2 minutes, of 100",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 0,
+    "w": 4,
+    "h": 4
+   },
+   "fieldConfig": {
+    "defaults": {
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "red",
+        "value": null
+       },
+       {
+        "color": "yellow",
+        "value": 50
+       },
+       {
+        "color": "green",
+        "value": 90
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "values": false
+    },
+    "colorMode": "background",
+    "graphMode": "none",
+    "textMode": "value"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "editorMode": "code",
+     "format": "table",
+     "rawQuery": true,
+     "rawSql": "SELECT count(*) AS n FROM latest WHERE k LIKE 'vss:V%' AND ts>extract(epoch from now())-120",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 3,
+   "type": "stat",
+   "title": "Hottest battery C",
+   "description": "",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 4,
+    "y": 0,
+    "w": 4,
+    "h": 4
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "celsius",
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "green",
+        "value": null
+       },
+       {
+        "color": "yellow",
+        "value": 45
+       },
+       {
+        "color": "orange",
+        "value": 50
+       },
+       {
+        "color": "red",
+        "value": 58
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "values": false
+    },
+    "colorMode": "background",
+    "graphMode": "none",
+    "textMode": "value"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "editorMode": "code",
+     "format": "table",
+     "rawQuery": true,
+     "rawSql": "SELECT max((payload->'vss'->>'Vehicle.Powertrain.TractionBattery.Temperature.Average')::float) AS t FROM latest WHERE k LIKE 'vss:V%'",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 4,
+   "type": "stat",
+   "title": "Vehicles power-capped",
+   "description": "The edge has reduced power",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 8,
+    "y": 0,
+    "w": 4,
+    "h": 4
+   },
+   "fieldConfig": {
+    "defaults": {
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "green",
+        "value": null
+       },
+       {
+        "color": "orange",
+        "value": 1
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "values": false
+    },
+    "colorMode": "background",
+    "graphMode": "none",
+    "textMode": "value"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "editorMode": "code",
+     "format": "table",
+     "rawQuery": true,
+     "rawSql": "SELECT count(*) AS n FROM latest WHERE k LIKE 'vss:V%' AND (payload->'edge'->>'cap')::float < 1",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 5,
+   "type": "stat",
+   "title": "Stations online",
+   "description": "of 8",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 12,
+    "y": 0,
+    "w": 4,
+    "h": 4
+   },
+   "fieldConfig": {
+    "defaults": {
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "red",
+        "value": null
+       },
+       {
+        "color": "yellow",
+        "value": 4
+       },
+       {
+        "color": "green",
+        "value": 7
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "values": false
+    },
+    "colorMode": "background",
+    "graphMode": "none",
+    "textMode": "value"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "editorMode": "code",
+     "format": "table",
+     "rawQuery": true,
+     "rawSql": "SELECT count(*) FILTER (WHERE s->>'online'='true') AS n FROM latest, jsonb_array_elements(payload->'grid'->'stations') s WHERE k='feeds'",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 6,
+   "type": "stat",
+   "title": "Cloud incidents (30m)",
+   "description": "Escalated by the edge",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 16,
+    "y": 0,
+    "w": 4,
+    "h": 4
+   },
+   "fieldConfig": {
+    "defaults": {
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "green",
+        "value": null
+       },
+       {
+        "color": "orange",
+        "value": 1
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "values": false
+    },
+    "colorMode": "background",
+    "graphMode": "none",
+    "textMode": "value"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "editorMode": "code",
+     "format": "table",
+     "rawQuery": true,
+     "rawSql": "SELECT count(*) AS n FROM events WHERE topic IN ('cloud.escalations','cloud.security') AND ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo()",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 7,
+   "type": "stat",
+   "title": "Edge-resolved alone",
+   "description": "Fixed on the vehicle with no cloud help",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 20,
+    "y": 0,
+    "w": 4,
+    "h": 4
+   },
+   "fieldConfig": {
+    "defaults": {
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "blue",
+        "value": null
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "values": false
+    },
+    "colorMode": "background",
+    "graphMode": "none",
+    "textMode": "value"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "editorMode": "code",
+     "format": "table",
+     "rawQuery": true,
+     "rawSql": "SELECT (payload->'edge_counters'->>'edge_resolved')::float AS n FROM latest WHERE k='feeds'",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 8,
+   "type": "geomap",
+   "title": "Live fleet map: vehicles by battery temperature, charging stations",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 4,
+    "w": 16,
+    "h": 14
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "editorMode": "code",
+     "format": "table",
+     "rawQuery": true,
+     "rawSql": "SELECT (payload->'position'->>0)::float AS lat, (payload->'position'->>1)::float AS lon, replace(k,'vss:','') AS vehicle, (payload->'vss'->>'Vehicle.Powertrain.TractionBattery.Temperature.Average')::float AS temp FROM latest WHERE k LIKE 'vss:V%' AND payload->'position' IS NOT NULL",
+     "refId": "A"
+    },
+    {
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "editorMode": "code",
+     "format": "table",
+     "rawQuery": true,
+     "rawSql": "SELECT (s->>'lat')::float AS lat, (s->>'lon')::float AS lon, s->>'id' AS station FROM latest, jsonb_array_elements(payload->'grid'->'stations') s WHERE k='feeds' AND s->>'online'='true'",
+     "refId": "B"
+    },
+    {
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "editorMode": "code",
+     "format": "table",
+     "rawQuery": true,
+     "rawSql": "SELECT (s->>'lat')::float AS lat, (s->>'lon')::float AS lon, s->>'id' AS station FROM latest, jsonb_array_elements(payload->'grid'->'stations') s WHERE k='feeds' AND s->>'online'='false'",
+     "refId": "C"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "color": {
+      "mode": "thresholds"
+     },
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "green",
+        "value": null
+       },
+       {
+        "color": "yellow",
+        "value": 45
+       },
+       {
+        "color": "orange",
+        "value": 50
+       },
+       {
+        "color": "red",
+        "value": 58
+       }
+      ]
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "view": {
+     "id": "coords",
+     "lat": 12.97,
+     "lon": 77.59,
+     "zoom": 11
+    },
+    "controls": {
+     "showZoom": true,
+     "mouseWheelZoom": true,
+     "showAttribution": true
+    },
+    "basemap": {
+     "type": "default",
+     "name": "Basemap"
+    },
+    "layers": [
+     {
+      "type": "markers",
+      "name": "Vehicles (colour = battery temp)",
+      "tooltip": true,
+      "filterData": {
+       "id": "byRefId",
+       "options": "A"
+      },
+      "location": {
+       "mode": "coords",
+       "latitude": "lat",
+       "longitude": "lon"
+      },
+      "config": {
+       "showLegend": true,
+       "style": {
+        "size": {
+         "fixed": 7,
+         "min": 2,
+         "max": 15
+        },
+        "color": {
+         "field": "temp"
+        },
+        "opacity": 0.85,
+        "symbol": {
+         "mode": "fixed",
+         "fixed": "img/icons/marker/circle.svg"
+        }
+       }
+      }
+     },
+     {
+      "type": "markers",
+      "name": "Charging stations ONLINE",
+      "tooltip": true,
+      "filterData": {
+       "id": "byRefId",
+       "options": "B"
+      },
+      "location": {
+       "mode": "coords",
+       "latitude": "lat",
+       "longitude": "lon"
+      },
+      "config": {
+       "showLegend": true,
+       "style": {
+        "size": {
+         "fixed": 12,
+         "min": 2,
+         "max": 15
+        },
+        "color": {
+         "fixed": "green"
+        },
+        "opacity": 0.85,
+        "symbol": {
+         "mode": "fixed",
+         "fixed": "img/icons/marker/square.svg"
+        }
+       }
+      }
+     },
+     {
+      "type": "markers",
+      "name": "Charging stations OFFLINE",
+      "tooltip": true,
+      "filterData": {
+       "id": "byRefId",
+       "options": "C"
+      },
+      "location": {
+       "mode": "coords",
+       "latitude": "lat",
+       "longitude": "lon"
+      },
+      "config": {
+       "showLegend": true,
+       "style": {
+        "size": {
+         "fixed": 14,
+         "min": 2,
+         "max": 15
+        },
+        "color": {
+         "fixed": "red"
+        },
+        "opacity": 0.85,
+        "symbol": {
+         "mode": "fixed",
+         "fixed": "img/icons/marker/triangle.svg"
+        }
+       }
+      }
+     }
+    ],
+    "tooltip": {
+     "mode": "details"
+    }
+   }
+  },
+  {
+   "id": 9,
+   "type": "table",
+   "title": "Hottest 12 vehicles right now",
+   "description": "",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "quantara-pg"
+   },
+   "gridPos": {
+    "x": 16,
+    "y": 4,
+    "w": 8,
+    "h": 14
+   },
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   },
+   "options": {
+    "showHeader": true,
+    "cellHeight": "sm"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "quantara-pg"
+     },
+     "editorMode": "code",
+     "format": "table",
+     "rawQuery": true,
+     "rawSql": "SELECT replace(k,'vss:','') AS vehicle, round(((payload->'vss'->>'Vehicle.Powertrain.TractionBattery.Temperature.Average')::numeric),1) AS temp_c, (payload->'vss'->>'Vehicle.Speed')::float AS speed_kph, round(((payload->'vss'->>'Vehicle.Powertrain.TractionBattery.Cooling.FlowRate')::numeric),2) AS coolant_flow, (payload->'edge'->>'cap')::float AS power_cap, round(extract(epoch from now())-ts) AS age_s FROM latest WHERE k LIKE 'vss:V%' ORDER BY 2 DESC LIMIT 12",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 1,
+   "type": "text",
+   "title": "What you are looking at",
+   "gridPos": {
+    "x": 0,
+    "y": 18,
+    "w": 24,
+    "h": 15
+   },
+   "options": {
+    "mode": "markdown",
+    "content": "### How it works (left to right)\n1. **Vehicle simulator** (100 synthetic EVs) emits speed, battery temp, coolant flow, wheel speeds, suspension, steering, lamps, gear.\n2. **EDGE (on each vehicle)** applies a rulebook: *battery > 50 C* = cut power, *coolant stopped* = limp mode, bad CAN traffic = isolate. It decides in under a second, even with no network. Only what it cannot resolve is escalated.\n3. **Kafka** carries the data. **Validate** drops bad data and quarantines suspicious vehicles. **Enrich** converts to standard VSS signal names.\n4. **CLOUD** (only for escalations): ranks root causes (Bayesian), runs a **digital twin** what-if to pick a safe power cap, plans a **route** to a working charger, and (if enabled) asks **Gemini** for a second opinion.\n5. **OTA**: fixes are signed, range-checked, need owner consent, and roll out 5% -> 25% -> 100% with rollback. Everything is written to a hash-chained audit log.\n6. **This dashboard** reads the database that the ops sink fills. Data is synthetic only.\n\n### The 4 problem scenarios (open one, then inject it)\n| Scenario | Watch it here | Inject |\n|---|---|---|\n| 1 Breakdown (heat, coolant dead) | [Dashboard 1](/d/quantara-s1) | `breakdown V000` |\n| 2 Ecosystem (grid / chargers down) | [Dashboard 2](/d/quantara-s2) | `grid_outage` |\n| 3 Degradation (km/kWh falling) | [Dashboard 3](/d/quantara-s3) | `degradation V000` |\n| 4 Cyber (attack on CAN / calibration) | [Dashboard 4](/d/quantara-s4) | `cyber_flood V000` |\n"
+   }
+  }
+ ],
+ "links": [
+  {
+   "title": "0 CONTROL ROOM",
+   "type": "link",
+   "url": "/d/quantara-home",
+   "icon": "dashboard"
+  },
+  {
+   "title": "1 Breakdown",
+   "type": "link",
+   "url": "/d/quantara-s1",
+   "icon": "dashboard"
+  },
+  {
+   "title": "2 Ecosystem",
+   "type": "link",
+   "url": "/d/quantara-s2",
+   "icon": "dashboard"
+  },
+  {
+   "title": "3 Degradation",
+   "type": "link",
+   "url": "/d/quantara-s3",
+   "icon": "dashboard"
+  },
+  {
+   "title": "4 Cyber",
+   "type": "link",
+   "url": "/d/quantara-s4",
+   "icon": "dashboard"
+  }
+ ]
+}

@@ -113,7 +113,7 @@
      "editorMode": "code",
      "format": "table",
      "rawQuery": true,
-     "rawSql": "SELECT (payload->'vss'->>'Battery.kmPerKwh')::float AS \"km/kWh\" FROM latest WHERE k='vss:${vehicle}'",
+     "rawSql": "SELECT (payload->'vss'->>'Vehicle.Powertrain.TractionBattery.Efficiency')::float AS \"km/kWh\" FROM latest WHERE k='vss:${vehicle}'",
      "refId": "A"
     }
    ]
@@ -179,7 +179,7 @@
      "editorMode": "code",
      "format": "table",
      "rawQuery": true,
-     "rawSql": "SELECT ((payload->'vss'->>'Battery.SoC')::float*60*(payload->'vss'->>'Battery.kmPerKwh')::float) AS range FROM latest WHERE k='vss:${vehicle}'",
+     "rawSql": "SELECT ((payload->'vss'->>'Vehicle.Powertrain.TractionBattery.StateOfCharge.Current')::float*60*(payload->'vss'->>'Vehicle.Powertrain.TractionBattery.Efficiency')::float) AS range FROM latest WHERE k='vss:${vehicle}'",
      "refId": "A"
     }
    ]
@@ -245,7 +245,7 @@
      "editorMode": "code",
      "format": "table",
      "rawQuery": true,
-     "rawSql": "SELECT (payload->'vss'->>'Battery.SoC')::float*100 AS \"SoC\" FROM latest WHERE k='vss:${vehicle}'",
+     "rawSql": "SELECT (payload->'vss'->>'Vehicle.Powertrain.TractionBattery.StateOfCharge.Current')::float*100 AS \"SoC\" FROM latest WHERE k='vss:${vehicle}'",
      "refId": "A"
     }
    ]
@@ -368,7 +368,7 @@
      "editorMode": "code",
      "format": "table",
      "rawQuery": true,
-     "rawSql": "SELECT count(*) AS n FROM latest WHERE k LIKE 'vss:V%' AND (payload->'vss'->>'Battery.kmPerKwh')::float < 5",
+     "rawSql": "SELECT count(*) AS n FROM latest WHERE k LIKE 'vss:V%' AND (payload->'vss'->>'Vehicle.Powertrain.TractionBattery.Efficiency')::float < 5",
      "refId": "A"
     }
    ]
@@ -433,7 +433,7 @@
      "editorMode": "code",
      "format": "table",
      "rawQuery": true,
-     "rawSql": "SELECT avg((payload->'vss'->>'Battery.kmPerKwh')::float) AS avg FROM latest WHERE k LIKE 'vss:V%'",
+     "rawSql": "SELECT avg((payload->'vss'->>'Vehicle.Powertrain.TractionBattery.Efficiency')::float) AS avg FROM latest WHERE k LIKE 'vss:V%'",
      "refId": "A"
     }
    ]
@@ -467,7 +467,7 @@
      "editorMode": "code",
      "format": "time_series",
      "rawQuery": true,
-     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Battery.kmPerKwh')::float AS \"km/kWh\" FROM telemetry WHERE vehicle_id='${vehicle}' AND ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo() ORDER BY ts",
+     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Vehicle.Powertrain.TractionBattery.Efficiency')::float AS \"km/kWh\" FROM telemetry WHERE vehicle_id='${vehicle}' AND ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo() ORDER BY ts",
      "refId": "A"
     }
    ]
@@ -501,7 +501,7 @@
      "editorMode": "code",
      "format": "time_series",
      "rawQuery": true,
-     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Battery.SoC')::float*100 AS \"SoC %\", (vss->>'Vehicle.Speed')::float AS \"Speed km/h\" FROM telemetry WHERE vehicle_id='${vehicle}' AND ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo() ORDER BY ts",
+     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Vehicle.Powertrain.TractionBattery.StateOfCharge.Current')::float*100 AS \"SoC %\", (vss->>'Vehicle.Speed')::float AS \"Speed km/h\" FROM telemetry WHERE vehicle_id='${vehicle}' AND ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo() ORDER BY ts",
      "refId": "A"
     }
    ]
@@ -548,7 +548,7 @@
      "editorMode": "code",
      "format": "time_series",
      "rawQuery": true,
-     "rawSql": "SELECT date_trunc('minute', to_timestamp(ts)) AS time, avg((vss->>'Battery.kmPerKwh')::float) AS fleet_avg FROM telemetry WHERE vehicle_id LIKE 'V%' AND ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo() GROUP BY 1 ORDER BY 1",
+     "rawSql": "SELECT date_trunc('minute', to_timestamp(ts)) AS time, avg((vss->>'Vehicle.Powertrain.TractionBattery.Efficiency')::float) AS fleet_avg FROM telemetry WHERE vehicle_id LIKE 'V%' AND ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo() GROUP BY 1 ORDER BY 1",
      "refId": "A"
     }
    ]
@@ -585,7 +585,7 @@
      "editorMode": "code",
      "format": "table",
      "rawQuery": true,
-     "rawSql": "SELECT k AS vehicle, (payload->'vss'->>'Battery.kmPerKwh')::float AS km_per_kwh, round(((payload->'vss'->>'Battery.SoC')::float*60*(payload->'vss'->>'Battery.kmPerKwh')::float)::numeric,0) AS est_range_km, (payload->'vss'->>'Battery.SoC')::float AS soc FROM latest WHERE k LIKE 'vss:V%' ORDER BY 2 ASC LIMIT 15",
+     "rawSql": "SELECT k AS vehicle, (payload->'vss'->>'Vehicle.Powertrain.TractionBattery.Efficiency')::float AS km_per_kwh, round(((payload->'vss'->>'Vehicle.Powertrain.TractionBattery.StateOfCharge.Current')::float*60*(payload->'vss'->>'Vehicle.Powertrain.TractionBattery.Efficiency')::float)::numeric,0) AS est_range_km, (payload->'vss'->>'Vehicle.Powertrain.TractionBattery.StateOfCharge.Current')::float AS soc FROM latest WHERE k LIKE 'vss:V%' ORDER BY 2 ASC LIMIT 15",
      "refId": "A"
     }
    ]
@@ -680,6 +680,12 @@
  ],
  "links": [
   {
+   "title": "0 CONTROL ROOM",
+   "type": "link",
+   "url": "/d/quantara-home",
+   "icon": "dashboard"
+  },
+  {
    "title": "1 Breakdown",
    "type": "link",
    "url": "/d/quantara-s1",
@@ -701,12 +707,6 @@
    "title": "4 Cyber",
    "type": "link",
    "url": "/d/quantara-s4",
-   "icon": "dashboard"
-  },
-  {
-   "title": "Overview",
-   "type": "link",
-   "url": "/d/quantara-ops",
    "icon": "dashboard"
   }
  ]

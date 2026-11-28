@@ -610,7 +610,7 @@
      "editorMode": "code",
      "format": "time_series",
      "rawQuery": true,
-     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Vehicle.Speed')::float AS \"Speed km/h\", (vss->>'Power.kW')::float AS \"Power kW\" FROM telemetry WHERE vehicle_id='${vehicle}' AND ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo() ORDER BY ts",
+     "rawSql": "SELECT to_timestamp(ts) AS time, (vss->>'Vehicle.Speed')::float AS \"Speed km/h\", (vss->>'Vehicle.Powertrain.ElectricMotor.Power')::float AS \"Power kW\" FROM telemetry WHERE vehicle_id='${vehicle}' AND ts BETWEEN $__unixEpochFrom() AND $__unixEpochTo() ORDER BY ts",
      "refId": "A"
     }
    ]
@@ -705,6 +705,12 @@
  ],
  "links": [
   {
+   "title": "0 CONTROL ROOM",
+   "type": "link",
+   "url": "/d/quantara-home",
+   "icon": "dashboard"
+  },
+  {
    "title": "1 Breakdown",
    "type": "link",
    "url": "/d/quantara-s1",
@@ -726,12 +732,6 @@
    "title": "4 Cyber",
    "type": "link",
    "url": "/d/quantara-s4",
-   "icon": "dashboard"
-  },
-  {
-   "title": "Overview",
-   "type": "link",
-   "url": "/d/quantara-ops",
    "icon": "dashboard"
   }
  ]
