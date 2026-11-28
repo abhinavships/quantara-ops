@@ -66,8 +66,16 @@ calibration tamper, telemetry-vs-physics mismatch). Inject from the UI (Actions 
 Simulated: vehicles, CAN, sensors, thermal physics, stations/grid state, owner and OEM approvals, route distances (straight line × 1.3).
 Real: the Kafka pipeline on Condense, the rulebook/IDS/escalation logic, Ed25519 signatures and every guard, the gateway security
 controls, the hash-chained audit log, the rollout state machine.
-**Not verified live:** the Postgres code path and Grafana panels (tests use SQLite; SQL for Postgres written but unrun here); the
-Redis cache is tested with a fake client only.
+**Verified live:** the Postgres path runs on Neon (events, latest, telemetry history, audit; concurrent pod starts tested against it).
+The Grafana panel SQL was run against Neon; the Grafana UI itself was not launched here (see grafana/README.md). The Redis cache is
+tested with a fake client only.
+
+## History and signals
+Beyond the latest value per vehicle, ops keeps a 5-second, 24-hour history in the `telemetry` table (JSON of VSS signals).
+`GET /api/history?vehicle=V000&signals=Vehicle.Speed,...&minutes=30` returns `{series: {signal: [[ts, value], ...]}}` and
+`GET /api/signals` lists what is reported (both vehicle-scoped like every other endpoint). Synthetic chassis signals: acceleration
+(longitudinal, lateral, vertical incl. speed bumps), steering angle, four wheel speeds, four suspension travels, brake/low-beam/hazard
+lamps and gear. Speed bumps and handling are generated at the live vehicle's speed; none of it comes from a real vehicle.
 
 ## Data-source licences
 Open-Meteo weather: CC BY 4.0 (non-commercial API terms). OSRM public demo server / OpenStreetMap routing data: ODbL (© OpenStreetMap
